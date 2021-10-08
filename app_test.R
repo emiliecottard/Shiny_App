@@ -17,20 +17,17 @@ summary(dataset)
 ### Define UI
 
 ui <- fluidPage(theme = shinytheme(theme = "sandstone"),
+                br(),
                 titlePanel(h1("Selective Vulnerability Meta Analysis", align = "center")),
+                br(),
+                br(),
                 sidebarLayout(
                   
                   # Create a spot for input 
                   sidebarPanel(width = 4,
-                               selectInput("xvar","Select a qalitative variable :", 
-                                           choices= c(colnames(dataset[,c(2,5,7,9,10,11)])),
-                                           selected = colnames(dataset[,2])),
-                               selectInput("yvar","Select a quantitative variable :",
-                                           choices = c("Mean" = "value_measurement_variable_1",
-                                                       "SD" = "value_measurement_variable_2",
-                                                       "age"="value_measurement_variable_3", 
-                                                       "age range"="value_measurement_variable_4",
-                                                       "disease duration"="value_measurement_variable_5")),
+                               varSelectInput("xvar","Select X variable :", dataset[,c(2,5,7,9,10,11)]),
+                               varSelectInput("yvar", "Select Y variable :", dataset[,c(13,15,17,19,21)]),
+                               hr(),
                                submitButton("Update filters")),
                   
                   #Create a spot for the plot
@@ -44,14 +41,20 @@ ui <- fluidPage(theme = shinytheme(theme = "sandstone"),
 ### Define server
 
 server <- function(input, output,session) {
-  dataInput<- reactive({
-    Cropdata <- dataset[,c(input$xvar,input$yvar)]
-    return(Cropdata)
-  })
   output$plot1 <- renderPlot({
-    ggplot(dataInput(), aes(x=input$xvar, y = input$yvar))+
-      geom_point(aes(colour = input$xvar), size = 1.7)+
-      labs(title = "Title of the graph",x= input$xvar, y= input$yvar)
+    ggplot(dataset, aes(x=!!input$xvar, y = !!input$yvar))+
+      geom_point(aes(color = !!input$xvar),size = 1.7)+
+      labs(title = paste(input$xvar, " by ", input$yvar, "\n"))+
+      theme(panel.background = element_rect(fill = "white"),
+            panel.grid = element_blank(),
+            axis.line = element_line(size = 0.5, colour = "darkgrey"),
+            plot.title = element_text(hjust = 0.5, size = 20),
+            axis.title = element_text(size = 14),
+            axis.text = element_text( colour = 'black',size = 14),
+            axis.text.x = element_text( angle = 45, hjust = 1),
+            legend.text = element_text(size = 14),
+            legend.key = element_blank(),
+            legend.title = element_text(size = 16))
   })
 }
 
