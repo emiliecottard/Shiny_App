@@ -32,9 +32,9 @@ dataset <- subset(dataset, select = -c(measurement_variable_1, measurement_varia
 
 # Changing columns names
 colnames(dataset) <- c("Id", "Type of data", "Number", "Case", "Group", "Region", 
-                        "Stain marker", "Cell type", "Quantification method",
-                        "Number or mean", "SD for groups", "Age", "Age range for groups",
-                        "Disease duration") ; colnames(dataset)
+                       "Stain marker", "Cell type", "Quantification method",
+                       "Number for individuals or mean for groups", "SD for groups", 
+                       "Age", "Age range for groups","Disease duration for individuals") ; colnames(dataset)
 
 
 
@@ -57,6 +57,8 @@ ui <- fluidPage(theme = shinytheme(theme = "sandstone"),
                                
                   #Create a spot for the plot
                   mainPanel(
+                    plotOutput("plot1", click = "plot_click"),
+                    verbatimTextOutput("info"),
                     DTOutput("table")
                   )
                 )
@@ -98,12 +100,34 @@ server <- function(input, output,session) {
 
   output$select_yvar <- renderUI({
     selectizeInput("yvar", "Select Y variable ",
-                   choices = colnames(dataset))   # put the reactive element in the choice spot
+                   choices = colnames(dataset[,-c(1:9)]))   # put the reactive element in the choice spot
   })
 
   output$table <- renderDT({
     cropdata <- choice_var1()[,-c(1:9)]   # need to remove empty columns 
     })
+  
+  #Creating a plot 
+  output$plot1 <- renderPlot({
+    ggplot(choice_var1(), aes(x=seq(1:nrow(choice_var1())), y = !!input$yvar)) + geom_point()    # geom_point(aes(color = !!input$xvar),size = 1.7)+
+      # labs(title = paste(input$yvar, " by ", input$xvar, "\n"))+
+      # theme(panel.background = element_rect(fill = "white"),
+      #       panel.grid = element_blank(),
+      #       axis.line = element_line(size = 0.5, colour = "darkgrey"),
+      #       plot.title = element_text(hjust = 0.5, size = 18),
+      #       axis.title = element_text(size = 15, face = "bold"),
+      #       axis.text = element_text( colour = 'black',size = 14),
+      #       axis.text.x = element_text( angle = 45, hjust = 1),
+      #       legend.text = element_text(size = 14),
+      #       legend.key = element_blank(),
+      #       legend.title = element_text(size = 15, face = "bold"))
+  })
+  
+  output$info <- renderPrint({
+    req(input$plot_click)
+    y <- round(input$plot_click$y, 2)
+    cat(input$yvar," is : ", y, sep = "")
+  })
 }
 
 
