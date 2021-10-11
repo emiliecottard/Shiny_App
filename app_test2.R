@@ -20,6 +20,11 @@ dataset$region <- c(paste(dataset$region, dataset$sub.region, sep = " "))  ; hea
 dataset$group <- c(paste(dataset$group, dataset$sub.group, sep = " ")) ; head(dataset)
 dataset <- subset(dataset, select = -c(sub.region,sub.group)) ; colnames(dataset)
 
+
+# Removing the NA in new "Group" column
+dataset$Group <- gsub("NA", "", dataset$Group) ; dataset$Group
+
+
 # Re-arranging columns Measurement and Value of measurement
 dataset <- subset(dataset, select = -c(measurement_variable_1, measurement_variable_2,
                                          measurement_variable_3, measurement_variable_4,
