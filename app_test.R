@@ -1,14 +1,16 @@
-###Library 
+### Library 
 library(shiny)
 library(dplyr)
 library(ggvis)
 library(ggplot2)
 library(shinythemes)
 
-###Import data
+### Import data
 dataset <- read.table("C:/Users/emili/Desktop/Imperial/shiny app/data/dummy_data_tidy.txt",
                       header = TRUE,sep = ",")
 head(dataset)
+
+# Fixing some values 
 dataset[1,5] <- "Control" ; dataset[1,5]
 addNA(dataset)   #setting NAs as factors 
 summary(dataset)
