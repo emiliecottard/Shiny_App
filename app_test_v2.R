@@ -12,8 +12,7 @@ dataset <- read.table("C:/Users/emili/Desktop/Imperial/shiny app/data/dummy_data
 head(dataset)
 
 # Fixing some values 
-dataset[1,5] <- "Control" ; dataset[1,5]
-addNA(dataset)   #setting NAs as factors 
+dataset[1,5] <- "Control" ; dataset[1,5] 
 summary(dataset)
 
 
