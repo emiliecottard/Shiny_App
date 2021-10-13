@@ -2,6 +2,7 @@
 library(shiny)
 library(shinythemes)
 library(ggplot2)
+library(dplyr)
 library(DT)
 
 
@@ -40,9 +41,10 @@ colnames(dataset) <- c("Id", "Type of data", "Number", "Case", "Group", "Region"
 
 ### Define UI
 
-ui <- fluidPage(theme = shinytheme(theme = "sandstone"),
+ui <- fluidPage(theme = shinytheme(theme = "cerulean"),
                 br(),
-                titlePanel(h1("Selective Vulnerability Meta Analysis", align = "center")),
+                titlePanel(h1("Selective Vulnerability Meta Analysis \n",
+                           h3("Information on how the dataset was created ..."))),
                 br(),
                 br(),
                 sidebarLayout(
@@ -55,7 +57,8 @@ ui <- fluidPage(theme = shinytheme(theme = "sandstone"),
                                varSelectInput("xvar","Select X variable :",
                                              dataset[,c(5,6,7,8,9)]),
                                varSelectInput("yvar", "Select Y variable :", 
-                                              dataset[,c(10:14)])
+                                              dataset[,c(10:14)]),
+                               htmlOutput("var_info")
                                ),
                                
                   #Create a spot for the plot
@@ -103,6 +106,14 @@ server <- function(input, output,session) {
   
   # Instructions for the graph
   output$text <- renderText(print("Click on the points on the graph to get the exact value"))
+  
+  # Instructions on the variables
+  output$var_info <- renderUI({
+    str1 <- h5("Type of data : ...")
+    str2 <- h5("Group : ...")
+    str3 <- h5("Region : ...")
+    HTML(paste(str1,str2,str3,sep = '\n'))
+  })
   
   # Shows the value of the selected point on the graph
   output$info <- renderPrint({
