@@ -43,21 +43,27 @@ colnames(dataset) <- c("Id", "Type of data", "Number", "Case", "Group", "Region"
 
 ui <- fluidPage(theme = shinytheme(theme = "cerulean"),
                 br(),
-                titlePanel(h1("Selective Vulnerability Meta Analysis \n",
+                titlePanel(h1("Selective Vulnerability Meta Analysis \n", align = "center",
                            h3("Information on how the dataset was created ..."))),
-                br(),
-                br(),
+                hr(),
                 sidebarLayout(
                   
                   # Create a spot for input 
                   sidebarPanel(width = 4,
-                               selectInput("data_type", "Select a type of data",
+                               selectInput("data_type", 
+                                            label = tags$span(style = "color: steelblue",
+                                                              "Select a type of data"),
                                            choices = levels(as.factor(dataset$`Type of data`)), 
                                            selected = 'group'),
-                               varSelectInput("xvar","Select X variable :",
+                               varSelectInput("xvar",
+                                              label = tags$span(style = "color: steelblue",
+                                                                "Select X variable :"),
                                              dataset[,c(5,6,7,8,9)]),
-                               varSelectInput("yvar", "Select Y variable :", 
+                               varSelectInput("yvar", 
+                                              label = tags$span(style = "color: steelblue",
+                                                                "Select Y variable :"), 
                                               dataset[,c(10:14)]),
+                               hr(),
                                htmlOutput("var_info")
                                ),
                                
@@ -109,10 +115,21 @@ server <- function(input, output,session) {
   
   # Instructions on the variables
   output$var_info <- renderUI({
-    str1 <- h5("Type of data : ...")
-    str2 <- h5("Group : ...")
-    str3 <- h5("Region : ...")
-    HTML(paste(str1,str2,str3,sep = '\n'))
+    str1 <- h5(strong("X variables : "))
+    str2 <- h6("Type of data : ...")
+    str3 <- h6("Group : ...")
+    str4 <- h6("Region : ...")
+    str5 <- h6("Stain marker : ...")
+    str6 <- h6("Cell type : ...")
+    str7 <- h6("Quantification method : ...")
+    str8 <- h5(strong("Y variables :"))
+    str9 <- h6("Number or mean : ...")
+    str10 <- h6("SD : ...")
+    str11 <- h6("Age : ...")
+    str12 <- h6("Age range : ...")
+    str13 <- h6("Disease duration : ...")
+    HTML(paste(str1,str2,str3,str4,str5,str6,str7,
+               str8,str9,str10,str11,str12,str13,sep = '\n'))
   })
   
   # Shows the value of the selected point on the graph
