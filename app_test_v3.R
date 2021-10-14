@@ -98,23 +98,23 @@ server <- function(input, output, session){
   
   # Instructions on the variables
   output$quanti_var_info <- renderUI({
-    str1 <- h5(strong("Quantitative variables : "), style ="color: steelblue")
-    str2 <- h6("Type of data : ...", style ="color: steelblue")
-    str3 <- h6("Group : ...", style ="color: steelblue")
-    str4 <- h6("Region : ...", style ="color: steelblue")
-    str5 <- h6("Stain marker : ...", style ="color: steelblue")
-    str6 <- h6("Cell type : ...", style ="color: steelblue")
-    str7 <- h6("Quantification method : ...", style ="color: steelblue")
+    str1 <- h5(strong("Quantitative variables : "))
+    str2 <- h6("Type of data : ...")
+    str3 <- h6("Group : ...")
+    str4 <- h6("Region : ...")
+    str5 <- h6("Stain marker : ...")
+    str6 <- h6("Cell type : ...")
+    str7 <- h6("Quantification method : ...")
     HTML(paste(str1,str2,str3,str4,str5,str6,str7,sep = '\n'))
   })
   
   output$quali_var_info <- renderUI({
-    str1 <- h5(strong("Qualitative variables :"), style ="color: steelblue")
-    str2 <- h6("Number or mean : ...", style ="color: steelblue")
-    str3 <- h6("SD : ...", style ="color: steelblue")
-    str4 <- h6("Age : ...", style ="color: steelblue")
-    str5 <- h6("Age range : ...", style ="color: steelblue")
-    str6 <- h6("Disease duration : ...", style ="color: steelblue")
+    str1 <- h5(strong("Qualitative variables :"))
+    str2 <- h6("Number or mean : ...")
+    str3 <- h6("SD : ...")
+    str4 <- h6("Age : ...")
+    str5 <- h6("Age range : ...")
+    str6 <- h6("Disease duration : ...")
     HTML(paste(str1,str2,str3,str4,str5,str6,sep = '\n'))
   })
 }
