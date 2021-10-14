@@ -1,4 +1,8 @@
+# Packages
+library(shiny)
 library(shinyWidgets)
+library(DT)
+
 
 ### Import data
 dataset <- read.table("C:/Users/emili/Desktop/Imperial/shiny app/data/dummy_data_tidy.txt",
@@ -70,7 +74,7 @@ ui <- pageWithSidebar(
       )
     )
   ),
-  mainPanel(tableOutput("table"),
+  mainPanel(DTOutput("table"),
             hr(),
             fluidRow(
               column(4,
@@ -92,7 +96,7 @@ server <- function(input, output, session){
   )
   
   # Filtered table
-  output$table <- renderTable({
+  output$table <- renderDT({
     res_mod()
   })
   
