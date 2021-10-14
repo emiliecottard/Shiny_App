@@ -17,6 +17,7 @@ dataset <- subset(dataset, select = -c(sub.region,sub.group)) ; colnames(dataset
 
 
 # Removing the NA in new "Group" column
+dataset$region <- gsub("NA", "", dataset$region) ; dataset$region
 dataset$group <- gsub("NA", "", dataset$group) ; dataset$group
 
 # Re-arranging columns Measurement and Value of measurement
@@ -31,44 +32,93 @@ colnames(dataset) <- c("Id", "Type_of_data", "Number", "Case", "Group", "Region"
                        "Age", "Age range","Disease duration") ; colnames(dataset)
 
 
-shinyApp(
-  ui <- pageWithSidebar(
-    headerPanel(h1("Selective Vulnerability Meta Analysis \n", align = "center",
-                   h3("Information on how the dataset was created ..."))),
-    sidebarPanel(
-      selectizeGroupUI(
-        id = "my_filters",
-        inline = FALSE,
-        params = list(
-          type_of_data = list( inputId = "Type_of_data", 
-                            title = "Select Type of data", placeholder = 'Select'),
-          group = list( inputId = "Group", 
-                        title = "Select group", placeholder = 'Select'),
-          region = list( inputId = "Region", 
-                        title = "Select region", placeholder = 'Select'),
-          stain_marker = list( inputId = "Stain_marker", 
-                         title = "Select stain marker", placeholder = 'Select'),
-          cell_type = list( inputId = "Cell_type", 
-                         title = "Select type of cell", placeholder = 'Select'),
-          quant_meth = list( inputId = "Quantification_method", 
-                         title = "Select method of quantification", placeholder = 'Select')
-        )
-      )
-      
-    ),
-    mainPanel(tableOutput("table")
-  )
-  ), 
 
-server = function(input, output, session){
+### Define UI
+  
+ui <- pageWithSidebar(
+  headerPanel(h1("Selective Vulnerability Meta Analysis \n", align = "center", style ="color: steelblue",
+                 h3("Information on how the dataset was created ...", style ="color: steelblue"))),
+  sidebarPanel(
+    selectizeGroupUI(
+      id = "my_filters",
+      inline = FALSE,
+      params = list(
+        Type_of_data = list( inputId = "Type_of_data", 
+                          title = tags$span(style = "color: steelblue",
+                                            "Select a type of data"),
+                          placeholder = 'Select'),
+        group = list( inputId = "Group", 
+                      title = tags$span(style = "color: steelblue",
+                                        "Select a group"),
+                      placeholder = 'Select'),
+        region = list( inputId = "Region", 
+                       title = tags$span(style = "color: steelblue",
+                                         "Select a region"),
+                      placeholder = 'Select'),
+        stain_marker = list( inputId = "Stain_marker", 
+                             title = tags$span(style = "color: steelblue",
+                                               "Select a stain marker"),
+                              placeholder = 'Select'),
+        cell_type = list( inputId = "Cell_type", 
+                          title = tags$span(style = "color: steelblue",
+                                            "Select a type of cell"),
+                          placeholder = 'Select'),
+        quant_meth = list( inputId = "Quantification_method", 
+                           title = tags$span(style = "color: steelblue",
+                                             "Select a quantification method"),
+                           placeholder = 'Select')
+      )
+    )
+  ),
+  mainPanel(tableOutput("table"),
+            hr(),
+            fluidRow(
+              column(4,
+                     htmlOutput("quanti_var_info")),
+              column(4, 
+                     htmlOutput("quali_var_info")))
+)
+) 
+
+
+### Define server
+
+server <- function(input, output, session){
   res_mod <- callModule(
     module = selectizeGroupServer,
     id = "my_filters",
     data = dataset,
     vars = c("Type_of_data", "Group", "Region", "Stain_marker", "Cell_type", "Quantification_method")
   )
+  
+  # Filtered table
   output$table <- renderTable({
     res_mod()
   })
-}, option = list(height = 500)
-)
+  
+  # Instructions on the variables
+  output$quanti_var_info <- renderUI({
+    str1 <- h5(strong("Quantitative variables : "), style ="color: steelblue")
+    str2 <- h6("Type of data : ...", style ="color: steelblue")
+    str3 <- h6("Group : ...", style ="color: steelblue")
+    str4 <- h6("Region : ...", style ="color: steelblue")
+    str5 <- h6("Stain marker : ...", style ="color: steelblue")
+    str6 <- h6("Cell type : ...", style ="color: steelblue")
+    str7 <- h6("Quantification method : ...", style ="color: steelblue")
+    HTML(paste(str1,str2,str3,str4,str5,str6,str7,sep = '\n'))
+  })
+  
+  output$quali_var_info <- renderUI({
+    str1 <- h5(strong("Qualitative variables :"), style ="color: steelblue")
+    str2 <- h6("Number or mean : ...", style ="color: steelblue")
+    str3 <- h6("SD : ...", style ="color: steelblue")
+    str4 <- h6("Age : ...", style ="color: steelblue")
+    str5 <- h6("Age range : ...", style ="color: steelblue")
+    str6 <- h6("Disease duration : ...", style ="color: steelblue")
+    HTML(paste(str1,str2,str3,str4,str5,str6,sep = '\n'))
+  })
+}
+
+
+###Run the app
+shinyApp(ui,server)
