@@ -6,15 +6,21 @@ library(DT)
 
 
 # Import data
-rawdata <- read.table("C:/Users/emili/Desktop/Imperial/shiny app/data/All_Data2.txt",
+rawdata <- read.table("C:/Users/emili/Desktop/Imperial/shiny app/data/All_Data3.txt",
                       header = TRUE,sep = ",")
 
 # Import glossary
-glossary <- read.table("C:/Users/emili/Desktop/Imperial/shiny app/data/glossary.txt",
-                      header = TRUE,sep = ",")
+glossary <- read.csv("C:/Users/emili/Desktop/Imperial/shiny app/data/glossary.txt",
+                      header = TRUE,sep = "|")
+
+# Re-arrange glossary
+glossary <- glossary[-1,-c(1,5)]
+glossary$Term <- gsub("`", "", glossary$Term)
+
 
 # Remove empty columns 
 dataset <- Filter(function(x)!all(is.na(x) | x == ""), rawdata)
+dataset <- dataset[,-1]
 
 
 # Merging groups and sub groups 
@@ -32,60 +38,47 @@ dataset$region <- gsub("NA", "", dataset$region) ; head(dataset$region)
   
 ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
                  tabPanel("Plot",
-  #pageWithSidebar(
-  # headerPanel(h1("Selective Vulnerability Meta Analysis \n",
-  #                align = "center", style ="color: steelblue")),
-  # hr(),
-  sidebarPanel(
+  sidebarPanel(h3("Select filters :", style ="color: steelblue"),
+               hr(),
     selectizeGroupUI(
       id = "my_filters",
       inline = FALSE,
       params = list(
         year_published = list( inputId = "year_published",
-                               title = tags$span(style = "color: steelblue",
-                                                 "Select a year of publication"),
-                               placeholder = 'Select'),
+                               placeholder = 'Select a year of publication'),
         rob_score = list( inputId = "rob_score",
-                               title = tags$span(style = "color: steelblue",
-                                                 "Select a rob score"),
-                               placeholder = 'Select'),
-        data_type = list( inputId = "data_type", 
-                          title = tags$span(style = "color: steelblue",
-                                            "Select a type of data"),
-                          placeholder = 'Select'),
+                               placeholder = 'Select a rob score'),
+        data_type = list( inputId = "data_type",
+                          placeholder = 'Select a type of data'),
         group = list( inputId = "group", 
-                      title = tags$span(style = "color: steelblue",
-                                        "Select a group"),
-                      placeholder = 'Select'),
+                      placeholder = 'Select a group'),
         region = list( inputId = "region", 
-                       title = tags$span(style = "color: steelblue",
-                                         "Select a region"),
-                      placeholder = 'Select'),
+                      placeholder = 'Select a region'),
         stain_marker = list( inputId = "stain_marker", 
-                             title = tags$span(style = "color: steelblue",
-                                               "Select a stain marker"),
-                              placeholder = 'Select'),
+                              placeholder = 'Select a stain marker'),
         cell_type = list( inputId = "cell_type", 
-                          title = tags$span(style = "color: steelblue",
-                                            "Select a type of cell"),
-                          placeholder = 'Select'),
+                          placeholder = 'Select a cell type'),
         quant_meth = list( inputId = "quantification_method", 
-                           title = tags$span(style = "color: steelblue",
-                                             "Select a quantification method"),
-                           placeholder = 'Select')
+                           placeholder = 'Select a quantification method')
       )
-    ),
-    hr(),
-    pickerInput('xvar', 
-                tags$span(style = "color: steelblue","Select X variable"),
-                choices = colnames(dataset[,c(1:26)]), selected = "PMID"),
-    pickerInput('yvar',
-                tags$span(style = "color: steelblue","Select Y variable"),
-                choices = colnames(dataset[,-c(1:26)]))
+    )
   ),
-  mainPanel(plotOutput("plot1", click = "plot_click")
-)
-),
+  mainPanel(
+    fluidRow(
+      column(4,
+              pickerInput('xvar', 
+                          tags$span(style = "color: steelblue","Select X variable"),
+                          choices = colnames(dataset[,c(1:26)]), selected = "PMID")
+      ),
+      column(4,
+             pickerInput('yvar',
+                          tags$span(style = "color: steelblue","Select Y variable"),
+                          choices = colnames(dataset[,-c(1:26)]))
+      ),
+    ),
+    fluidRow(plotOutput("plot1", click = "plot_click"),
+             verbatimTextOutput("info")
+))),
       tabPanel("Glossary",
                mainPanel(DTOutput("glossary")
                )
@@ -104,6 +97,23 @@ server <- function(input, output, session){
              "stain_marker", "cell_type", "quantification_method")
   )
   
+  # Update the X and Y variable choices depending on the input
+  observeEvent({
+    input[["my_filters-year_published"]]
+    input[["my_filters-rob_score"]]
+    input[["my_filters-data_type"]]
+    input[["my_filters-group"]]
+    input[["my_filters-region"]]
+    input[["my_filters-stain_marker"]]
+    input[["my_filters-cell_type"]]
+    input[["my_filters-quantification_method"]]
+    },{
+    res_mod2 <- Filter(function(x)!all(is.na(x) | x == ""), res_mod())
+    a <- which(colnames(res_mod2) == "quantification_method")                 #Get the column number between the quantitative variables and the qualitative variables
+    updatePickerInput(session, 'yvar', choices = colnames(res_mod2[,-c(1:a)]))
+    updatePickerInput(session, 'xvar', choices = colnames(res_mod2[,c(1:a)]))
+  })
+  
   # Reactive value for the X axis 
   x <- reactive({res_mod()[,input$xvar]})
   
@@ -118,6 +128,14 @@ server <- function(input, output, session){
             ylab = input$yvar)
   })
   
+  # Coordinates of selected points 
+  output$info <- renderPrint({
+    req(input$plot_click)
+    xvalue <- round(input$plot_click$x, 2)
+    yvalue <- round(input$plot_click$y, 2)
+    cat(input$xvar," is :", xvalue, "\t",input$yvar, " is : ",yvalue)
+  })
+  
   # Glossary
   output$glossary <- renderDT(glossary)
 }
@@ -125,3 +143,4 @@ server <- function(input, output, session){
 
 ###Run the app
 shinyApp(ui,server)
+
