@@ -4,13 +4,17 @@ library(shinyWidgets)
 library(ggplot2)
 library(DT)
 
+# source updates functions of the shinyWidget package 
+source("C:/Users/emili/Documents/GitHub/shinyWidgets/R/module-selectizeGroup.R")
+source("C:/Users/emili/Documents/GitHub/shinyWidgets/R/module-utils.R")
+
 
 # Import data
-rawdata <- read.table("C:/Users/emili/Desktop/Imperial/shiny app/data/All_Data3.txt",
+rawdata <- read.table("C:/Users/emili/Desktop/ukdri/shiny app/data/All_Data.txt",
                       header = TRUE,sep = ",")
 
 # Import glossary
-glossary <- read.csv("C:/Users/emili/Desktop/Imperial/shiny app/data/glossary.txt",
+glossary <- read.csv("C:/Users/emili/Desktop/ukdri/shiny app/data/glossary.txt",
                       header = TRUE,sep = "|")
 
 # Re-arrange glossary
@@ -94,7 +98,8 @@ server <- function(input, output, session){
     id = "my_filters",
     data = dataset,
     vars = c("year_published", "rob_score", "data_type", "group", "region",
-             "stain_marker", "cell_type", "quantification_method")
+             "stain_marker", "cell_type", "quantification_method"),
+    inline = FALSE
   )
   
   # Update the X and Y variable choices depending on the input
