@@ -1,10 +1,11 @@
 # Packages
 library(shiny)
 library(shinyWidgets)
+library(plyr)
 library(ggplot2)
 library(DT)
 
-# source updates functions of the shinyWidget package 
+# source updated functions of the shinyWidget package 
 source("C:/Users/emili/Documents/GitHub/shinyWidgets/R/module-selectizeGroup.R")
 source("C:/Users/emili/Documents/GitHub/shinyWidgets/R/module-utils.R")
 
@@ -36,6 +37,31 @@ dataset <- subset(dataset, select = -c(sub.region,sub.group)) ; colnames(dataset
 # Removing unnecessary NAs in  merged columns
 dataset$group <- gsub("NA", "", dataset$group) ; head(dataset$group)
 dataset$region <- gsub("NA", "", dataset$region) ; head(dataset$region)
+
+# Harmonizing terms 
+dataset$region <- mapvalues(dataset$region,
+                            c("A10 Cli", "A10 Rli", "caudate_nucleus ", "olfactory_bulb ", "SN dorsolateral",
+                              "SN dorsomedial", "SN lateral", "SN medial", "SN middle", "SN posterolateral",
+                              "SN ventral", "SN ventrolateral"),
+                            c("A10 CLi", "A10 RLI", "caudate_Nucleus ", "olfactory_bulb", "SN Dorsolateral",
+                              "SN Dorsomedial", "SN Lateral", "SN Medial", "SN Middle", "SN Posterolateral",
+                              "SN Ventral", "SN Ventrolateral"))
+
+dataset$group <- mapvalues(dataset$group, 
+                           c("Control young", "PD without_l-dopa_reponse","PD without_l-dope_response", "LB Disorder "),
+                           c("control young", "PD without_l-dopa_response", "PD without_l-dopa_response","LB_Disorder"))
+
+dataset$stain_marker <- mapvalues(dataset$stain_marker, 
+                                  c("ChAt"),
+                                  c("ChAT"))
+
+dataset$cell_type <- mapvalues(dataset$cell_type, 
+                               c("CaN-pos", "large ", "noradrenergic", "purkinje_cell"),
+                               c("CaN_pos", "large", "Noradrenergic", "Purkinje_Cell"))
+
+dataset$quantification_method <- mapvalues(dataset$quantification_method,
+                                           c("manual", "stereology", "Sterology"),
+                                           c("Manual", "Stereology", "Stereology"))
 
 
 ### Define UI
