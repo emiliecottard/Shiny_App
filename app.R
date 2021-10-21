@@ -1,21 +1,21 @@
 # Packages
 library(shiny)
 library(shinyWidgets)
+library(devtools)
 library(plyr)
 library(ggplot2)
 library(DT)
 
 # source updated functions of the shinyWidget package 
-source("C:/Users/emili/Documents/GitHub/shinyWidgets/R/module-selectizeGroup.R")
-source("C:/Users/emili/Documents/GitHub/shinyWidgets/R/module-utils.R")
-
+source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-selectizeGroup.R")
+source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-utils.R")
 
 # Import data
 rawdata <- read.table("C:/Users/emili/Desktop/ukdri/shiny app/data/All_Data.txt",
                       header = TRUE,sep = ",")
 
 # Import glossary
-glossary <- read.csv("C:/Users/emili/Desktop/ukdri/shiny app/data/glossary.txt",
+glossary <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/glossary.md?token=AVOQPRMOVRBGS3ZGKA2W3BLBPJWFS",
                       header = TRUE,sep = "|")
 
 # Re-arrange glossary
@@ -27,6 +27,8 @@ glossary$Term <- gsub("`", "", glossary$Term)
 dataset <- Filter(function(x)!all(is.na(x) | x == ""), rawdata)
 dataset <- dataset[,-1]
 
+#Remove empy rows 
+dataset <- dataset[!apply(is.na(dataset) | dataset == "NA", 1, all),]
 
 # Merging groups and sub groups 
 dataset$region <- c(paste(dataset$region, dataset$sub.region, sep = " "))  ; head(dataset)
