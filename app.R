@@ -11,7 +11,7 @@ source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/
 source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-utils.R")
 
 # Import data
-rawdata <- read.table("C:/Users/emili/Desktop/ukdri/shiny app/data/All_Data.txt",
+rawdata <- read.table("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRMGLEIVUFQMWHFDWHTBPLFHO",
                       header = TRUE,sep = ",")
 
 # Import glossary
@@ -27,8 +27,6 @@ glossary$Term <- gsub("`", "", glossary$Term)
 dataset <- Filter(function(x)!all(is.na(x) | x == ""), rawdata)
 dataset <- dataset[,-1]
 
-#Remove empy rows 
-dataset <- dataset[!apply(is.na(dataset) | dataset == "NA", 1, all),]
 
 # Merging groups and sub groups 
 dataset$region <- c(paste(dataset$region, dataset$sub.region, sep = " "))  ; head(dataset)
