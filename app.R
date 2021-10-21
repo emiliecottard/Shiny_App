@@ -130,7 +130,7 @@ server <- function(input, output, session){
     inline = FALSE
   )
   
-  
+  # Update the X and Y variable choices depending on the inputs
   inputlist <- reactive({
     list(input[["my_filters-year_published"]],
          input[["my_filters-rob_score"]],
@@ -142,7 +142,6 @@ server <- function(input, output, session){
          input[["my_filters-quantification_method"]])
   })
   
-  # Update the X and Y variable choices depending on the input
   observeEvent( inputlist(),{
     res_mod2 <- Filter(function(x)!all(is.na(x) | x == ""), res_mod())
     a <- which(colnames(res_mod2) == "quantification_method")                 #Get the column number between the quantitative variables and the qualitative variables
