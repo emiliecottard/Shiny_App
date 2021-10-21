@@ -130,17 +130,20 @@ server <- function(input, output, session){
     inline = FALSE
   )
   
+  
+  inputlist <- reactive({
+    list(input[["my_filters-year_published"]],
+         input[["my_filters-rob_score"]],
+         input[["my_filters-data_type"]],
+         input[["my_filters-group"]],
+         input[["my_filters-region"]],
+         input[["my_filters-stain_marker"]],
+         input[["my_filters-cell_type"]],
+         input[["my_filters-quantification_method"]])
+  })
+  
   # Update the X and Y variable choices depending on the input
-  observeEvent({
-    input[["my_filters-year_published"]]
-    input[["my_filters-rob_score"]]
-    input[["my_filters-data_type"]]
-    input[["my_filters-group"]]
-    input[["my_filters-region"]]
-    input[["my_filters-stain_marker"]]
-    input[["my_filters-cell_type"]]
-    input[["my_filters-quantification_method"]]
-    },{
+  observeEvent( inputlist(),{
     res_mod2 <- Filter(function(x)!all(is.na(x) | x == ""), res_mod())
     a <- which(colnames(res_mod2) == "quantification_method")                 #Get the column number between the quantitative variables and the qualitative variables
     updatePickerInput(session, 'yvar', choices = colnames(res_mod2[,-c(1:a)]))
