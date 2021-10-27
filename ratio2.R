@@ -106,6 +106,23 @@ ratio <- function(data, pmid){
   var_control <- vars[1]
   var_pd <- sum(vars[-1])/length(vars[-1])
   
+  
+  if (is.na(var_control) & (dim(crop_data)[1]==2)){
+    if (crop_data[which(crop_data$group == levels(as.factor(crop_data$group))[1]),"SD"] == " "){
+      var_control <- crop_data[which(crop_data$group == levels(as.factor(crop_data$group))[1]),"SEM"]
+    } else {
+      var_control <- crop_data[which(crop_data$group == levels(as.factor(crop_data$group))[1]),"SD"]
+    }
+  }
+  
+  if (is.na(var_pd) & (dim(crop_data)[1]==2)){
+    if (crop_data[which(crop_data$group != levels(as.factor(crop_data$group))[1]),"SD"] == " "){
+      var_pd <- crop_data[which(crop_data$group != levels(as.factor(crop_data$group))[1]),"SEM"]
+    } else {
+      var_pd <- crop_data[which(crop_data$group != levels(as.factor(crop_data$group))[1]),"SD"]
+    }
+  }
+
   # calculate ratio
   ratio = mean_pd/mean_control
   print(ratio)
