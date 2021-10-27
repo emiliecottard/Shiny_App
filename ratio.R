@@ -1,10 +1,22 @@
 library(dplyr)
 
 # Get the columns containing the values
-dta <- apply(dataset, 1, FUN = function(x)(which(!is.na(x[c(30:41)])))) ;dta
+dta <- apply(dataset, 1, FUN = function(x)(which(!is.na(x[c(30:41)])))) ; head(dta)
+
+# list of empty cells 
+empty_cells <- c()
+for (i in 1:length(dta)){
+  if (length(dta[[i]])== 0)
+    {empty_cells <- c(empty_cells,i)}
+}
+
+
+# Remove lines with no measure from original dataset
+dataset <- dataset[-c(empty_cells),]
+dta <- dta[-c(empty_cells)]
 
 # Replace the column number by its name
-dta2 <- lapply(dta,function(x)(colnames(dataset[,c(30:41)])[x])) ; dta2
+dta2 <- lapply(dta,function(x)(colnames(dataset[,c(30:41)])[x])) ; head(dta2)
 
 # Merge it to the dataset
 dataset2 <- dataset
@@ -82,7 +94,7 @@ ggplot(data_10_merge, aes(x = PMID, y = ratio)) + geom_point() +
 
 
 # For 10 first PMIDs with individuals and groups
-list_pmid_tot <- levels(dataset2$PMID)
+list_pmid_tot <- levels(as.factor(dataset2$PMID))
 list_pmid_tot <- droplevels(as.factor(list_pmid_tot))
 
 
@@ -116,15 +128,14 @@ ratio <- function(data, pmid){
 data_tot_10 <- dataset2 %>% filter(PMID == list_pmid_tot[1] | PMID == list_pmid_tot[2] | PMID == list_pmid_tot[3])
 vect_ratio <- c()
 vect_v_ratio <- c()
-for (i in 1:length(list_pmid_tot)){
+for (i in 184:length(list_pmid_tot)){
   print(i)
   r <- ratio(dataset2, levels(as.factor(dataset2$PMID))[i])
-  print(c(r[1],r[2]))
   vect_ratio <- c(vect_ratio, r[1])
   vect_v_ratio <- c(vect_v_ratio, r[2])
 }
 
-data_10_ratio_tot <- data.frame("PMID" = levels(droplevels(dataset2$PMID))[1:9], "ratio" = vect_ratio, "v-ratio" = vect_v_ratio)
+data_10_ratio_tot <- data.frame("PMID" = levels(dataset2$PMID), "ratio" = vect_ratio, "v-ratio" = vect_v_ratio)
 data_10_merge_tot <- merge(dataset2, data_10_ratio_tot, by = "PMID", all = TRUE)
 
 # Plot
@@ -132,10 +143,27 @@ ggplot(data_10_merge_tot, aes(x = PMID, y = ratio)) + geom_point() +
   geom_errorbar(aes(ymin=ratio-v.ratio, ymax=ratio+v.ratio), width = .2)
 
 
+### Example 
+data_tot_ex <- dataset2 %>% filter(PMID == list_pmid_tot[1] | PMID == list_pmid_tot[2] | PMID == list_pmid_tot[3] |
+                                     PMID == list_pmid_tot[4] | PMID == list_pmid_tot[5] | PMID == list_pmid_tot[6] |
+                                     PMID == list_pmid_tot[7] |PMID == list_pmid_tot[8] |PMID == list_pmid_tot[9])
 
 
+vect_ratio <- c()
+vect_v_ratio <- c()
+for (i in 1:9){
+  print(i)
+  r <- ratio(dataset2, levels(as.factor(dataset2$PMID))[i])
+  vect_ratio <- c(vect_ratio, r[1])
+  vect_v_ratio <- c(vect_v_ratio, r[2])
+}
 
+data_ex_ratio_tot <- data.frame("PMID" = list_pmid_tot[1:9], "ratio" = vect_ratio, "v-ratio" = vect_v_ratio)
+data_ex_merge_tot <- merge(data_tot_ex, data_ex_ratio_tot, by = "PMID", all = TRUE)
 
+# Plot
+ggplot(data_ex_merge_tot, aes(x = PMID, y = ratio)) + geom_point() +
+  geom_errorbar(aes(ymin=ratio-v.ratio, ymax=ratio+v.ratio), width = .2)
 
 
 crop_data <- indiv_dataset %>% filter(PMID == list_pmid[21])
@@ -144,7 +172,7 @@ means <- tapply(crop_data[,col], crop_data$group, mean)
 var <- tapply(crop_data[,col], crop_data$group, sd)
 
 
-crop_data <- dataset %>% filter(PMID == levels(as.factor(dataset$PMID))[1])
-col <- levels(droplevels(as.factor(indiv_dataset$dta2[which(dataset$PMID == levels(as.factor(dataset$PMID))[1])])))
+crop_data <- dataset2 %>% filter(PMID == levels(as.factor(dataset2$PMID))[6])
+col <- levels(droplevels(as.factor(dataset2$dta2[which(dataset2$PMID == levels(as.factor(dataset2$PMID))[6])])))
 means <- tapply(crop_data[,col], crop_data$group, mean)
 var <- tapply(crop_data[,col], crop_data$group, sd)
