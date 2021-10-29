@@ -165,8 +165,4 @@ if (isTRUE(length(levels(as.factor(sub_data[,21])))==1) & isTRUE(length(levels(a
     vect_sd_ratio <- c(vect_sd_ratio, r[2])
   }
 
-# list of the PMIDs
-list_pmid_tot <- levels(as.factor(dataset2$PMID))
-list_pmid_tot <- droplevels(as.factor(list_pmid_tot))
-
 data_ratio <- data.frame("PMID" = c(pmid), "ratio" = vect_ratio, "v-ratio" = vect_sd_ratio) ; data_ratio
