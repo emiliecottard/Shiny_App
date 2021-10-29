@@ -62,7 +62,9 @@ for (i in 1:length(dta)){
   {empty_cells <- c(empty_cells,i)}
 }
 
-# Remove lines with no measure from original datasetdataset <- dataset[-c(empty_cells),]dta <- dta[-c(empty_cells)]
+# Remove lines with no measure from original dataset
+dataset <- dataset[-c(empty_cells),]dta <- dta[-c(empty_cells)]
+
 # Replace the column number by its name
 dta2 <- lapply(dta,function(x)(colnames(dataset[,c(30:41)])[x])) ; head(dta2)
 
@@ -73,8 +75,7 @@ dataset2$dta2 <- dta2
 
 # Transfrom NAs or " " in Region/stain marker / cell type / quantification method into factors 
 # Column region
-dataset2[c(which(dataset2[,"region"]== " ")),"region"] <- 
-  gsub(" ", "NA", dataset2[c(which(dataset2[,"region"]== " ")),"region"])
+dataset2[c(which(dataset2[,"region"]== " ")),"region"] <- gsub(" ", "NA", dataset2[c(which(dataset2[,"region"]== " ")),"region"])
 dataset2$region <- dataset2$region %>% na.replace("NA")
 
 # Column stain marker 
@@ -137,12 +138,12 @@ ratio <- function(data, pmid){
     sd_pd <- max(0,mean(sd[-grep("ontrol", sd[,1]),2]))
 
   }
-
+    
+    # ratio and sd of the ratio calcul
     ratio <- mean_pd/mean_control
-
     sd_ratio <- max(0, sd_pd / (mean_control^2) + (sd_control*(mean_pd**2)) / (mean_control^4))
 
-return(c(ratio, sd_ratio))
+    return(c(ratio, sd_ratio))
 
 }
 
@@ -151,13 +152,15 @@ return(c(ratio, sd_ratio))
 pmid <- 
 
 sub_data <- dataset2 %>% filter( PMID == pmid)
-  if (isTRUE(length(levels(as.factor(sub_data[,21])))==1) & isTRUE(length(levels(as.factor(sub_data[,22])))==1) & 
+
+# Only treat PMID with identical conditions for all rows
+if (isTRUE(length(levels(as.factor(sub_data[,21])))==1) & isTRUE(length(levels(as.factor(sub_data[,22])))==1) & 
       isTRUE(length(levels(as.factor(sub_data[,23])))==1) & isTRUE(length(levels(as.factor(sub_data[,24])))==1)){
 
     r <- ratio(dataset2, pmid)
     pmid <- c(pmid,i )
     vect_ratio <- c(vect_ratio, r[1])
     vect_sd_ratio <- c(vect_sd_ratio, r[2])
-    data_ratio <- data.frame("PMID" = c(list_pmid_tot[pmid]), "ratio" = vect_ratio, "v-ratio" = vect_sd_ratio)
-    return (data_ratio)
   }
+
+data_ratio <- data.frame("PMID" = c(list_pmid_tot[pmid]), "ratio" = vect_ratio, "v-ratio" = vect_sd_ratio) ; data_ratio
