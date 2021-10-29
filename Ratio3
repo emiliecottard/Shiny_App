@@ -151,6 +151,10 @@ ratio <- function(data, pmid){
 
 pmid <- 
 
+id_pmid <- c()
+vect_ratio <- c()
+vect_sd_ratio <- c()
+
 sub_data <- dataset2 %>% filter( PMID == pmid)
 
 # Only treat PMID with identical conditions for all rows
@@ -158,9 +162,9 @@ if (isTRUE(length(levels(as.factor(sub_data[,21])))==1) & isTRUE(length(levels(a
       isTRUE(length(levels(as.factor(sub_data[,23])))==1) & isTRUE(length(levels(as.factor(sub_data[,24])))==1)){
 
     r <- ratio(dataset2, pmid)
-    pmid <- c(pmid,i )
+    id_pmid <- c(id_pmid,i )
     vect_ratio <- c(vect_ratio, r[1])
     vect_sd_ratio <- c(vect_sd_ratio, r[2])
   }
 
-data_ratio <- data.frame("PMID" = c(list_pmid_tot[pmid]), "ratio" = vect_ratio, "v-ratio" = vect_sd_ratio) ; data_ratio
+data_ratio <- data.frame("PMID" = c(list_pmid_tot[id_pmid]), "ratio" = vect_ratio, "v-ratio" = vect_sd_ratio) ; data_ratio
