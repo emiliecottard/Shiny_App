@@ -121,19 +121,27 @@ ratio <- function(crop_data, col){
   values_cv_control = crop_data[controls,"CV"]
   values_cv_pd = crop_data[-controls,"CV"]
   
+  # Calculate SDs
+  # If there is SD values available
   if (all(!is.na(values_sd_control)) && all(!is.na(values_sd_pd))){                     
     sd_control <- 1 / sum( 1/values_sd_control) 
     sd_pd <- 1 / sum( 1/values_sd_pd) 
     print("sd")
-  }  else if (all(!is.na(values_sem_control)) && all(!is.na(values_sem_pd))) {
+  } 
+  # If there is SEM values available
+  else if (all(!is.na(values_sem_control)) && all(!is.na(values_sem_pd))) {
     sd_control <- 1 / sum( 1/(values_sem_control*c(sqrt(crop_data[controls,"n"]))))
     sd_pd <- 1 / sum( 1/(values_sem_pd*c(sqrt(crop_data[-controls,"n"]))))
     print("sem")
-  } else if (all(!is.na(values_cv_control)) && all(!is.na(values_cv_pd))){
+  } 
+  # If there is CV values available
+  else if (all(!is.na(values_cv_control)) && all(!is.na(values_cv_pd))){
     sd_control <- 1 / sum( 1/(values_cv_control*c(sqrt(crop_data[controls,col]))))
     sd_pd <- 1 / sum( 1/(values_cv_pd*c(sqrt(crop_data[-controls,col]))))
     print("CV")
-  } else {
+  } 
+  # If there is no SD/SEM/CV values available
+  else {
     sd <- ddply(crop_data, "group", function(x)sqrt(weighted.sd(x[,col], x[,"n"]/sum(x[,"n"]))))
     sd_control <- max(0,mean(sd[grep("ontrol", sd[,1]),2]))   # if mean is a NA then sd control get the value 0
     sd_pd <- max(0,mean(sd[-grep("ontrol", sd[,1]),2]))
