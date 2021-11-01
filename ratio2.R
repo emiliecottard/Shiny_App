@@ -102,8 +102,11 @@ list_pmid_tot <- droplevels(as.factor(list_pmid_tot))
 # Function calculating the ration and the variance of the ratio
 ratio <- function(crop_data, col){
   
+  # add column for high level groupings 
+  crop_data$group_high_level <- ifelse(grepl("ontrol", crop_data$group), "Control", "PD")
+  
   # calculate mean by group 
-  means <- ddply(crop_data, "group", function(x)wtd.mean(x[,col], x[,"n"]/sum(x[,"n"])))
+  means <- ddply(crop_data, "group_high_level", function(x)wtd.mean(x[,col], x[,"n"]/sum(x[,"n"])))
   
   # Define controls 
   controls <- grep("ontrol",crop_data$group)
