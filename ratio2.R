@@ -10,7 +10,7 @@ library(Hmisc)
 library(radiant.data)
 
 # Import data
-rawdata <- read.table("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRMGLEIVUFQMWHFDWHTBPLFHO",
+rawdata <- read.table("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRM4LLNDWUDXXWVDDBTBRECJM",
                       header = TRUE,sep = ",")
 
 # Remove empty columns 
@@ -54,15 +54,6 @@ dataset$quantification_method <- mapvalues(dataset$quantification_method,
                                            c("Manual", "Stereology", "Stereology"))
 
 
-# Create new data 
-# remove duplicated rows of region / stain marker / cell type and quantification method 
-summarized_data <- dataset 
-summarized_data <- summarized_data[!duplicated(summarized_data[,c(21:24)]),]    
-
-
-
-
-
 # Get the columns containing the values
 dta <- apply(dataset, 1, FUN = function(x)(which(!is.na(x[c(30:41)])))) ; head(dta)
 
@@ -85,6 +76,7 @@ dta2 <- lapply(dta,function(x)(colnames(dataset[,c(30:41)])[x])) ; head(dta2)
 dataset2 <- dataset
 dta2 <- unlist(dta2)
 dataset2$dta2 <- dta2
+dataset2 <- dataset2[-which(dataset2$PMID == "6089493" & dataset2$dta2 == "number"),]  # remove an anormal line  
 
 
 # Transfrom NAs or " " in Region/stain marker / cell type / quantification method into factors 
@@ -108,28 +100,18 @@ list_pmid_tot <- levels(as.factor(dataset2$PMID))
 list_pmid_tot <- droplevels(as.factor(list_pmid_tot))
 
 # Function calculating the ration and the variance of the ratio
-ratio <- function(data, pmid){
+ratio <- function(crop_data, col){
   
-  # get column with the values
-  col <- levels(droplevels(as.factor(data$dta2[which(data$PMID == pmid)])))
-  
-  # separate cases from controls
-  crop_data <- data %>% filter(PMID == pmid)
-  mean_value <- crop_data[,col]
-  mean_weights <-crop_data$n/sum(crop_data$n)
+  # calculate mean by group 
   means <- ddply(crop_data, "group", function(x)wtd.mean(x[,col], x[,"n"]/sum(x[,"n"])))
   
   # Define controls 
   controls <- grep("ontrol",crop_data$group)
-
+  
   # group means of cases
   mean_control <- mean(means[grep("ontrol", means[,1]),2])
   mean_pd <- mean(means[-grep("ontrol", means[,1]),2])
-
   
-
-  # Define controls 
-  controls <- grep("ontrol",crop_data$group)
   
   # Get the different values of dispersion available
   values_sd_control = crop_data[controls,"SD"]
@@ -139,51 +121,29 @@ ratio <- function(data, pmid){
   values_cv_control = crop_data[controls,"CV"]
   values_cv_pd = crop_data[-controls,"CV"]
   
-  if (!all(is.na(values_sd_control))){                     # put all(!is.na) ?
+  if (all(!is.na(values_sd_control)) && all(!is.na(values_sd_pd))){                     
     sd_control <- 1 / sum( 1/values_sd_control) 
     sd_pd <- 1 / sum( 1/values_sd_pd) 
-  }  else if (!all(is.na(values_sem_control))) {
+    print("sd")
+  }  else if (all(!is.na(values_sem_control)) && all(!is.na(values_sem_pd))) {
     sd_control <- 1 / sum( 1/(values_sem_control*c(sqrt(crop_data[controls,"n"]))))
     sd_pd <- 1 / sum( 1/(values_sem_pd*c(sqrt(crop_data[-controls,"n"]))))
-  } else if (!all(is.na(values_cv_control))){
+    print("sem")
+  } else if (all(!is.na(values_cv_control)) && all(!is.na(values_cv_pd))){
     sd_control <- 1 / sum( 1/(values_cv_control*c(sqrt(crop_data[controls,col]))))
     sd_pd <- 1 / sum( 1/(values_cv_pd*c(sqrt(crop_data[-controls,col]))))
+    print("CV")
   } else {
     sd <- ddply(crop_data, "group", function(x)sqrt(weighted.sd(x[,col], x[,"n"]/sum(x[,"n"]))))
     sd_control <- max(0,mean(sd[grep("ontrol", sd[,1]),2]))   # if mean is a NA then sd control get the value 0
     sd_pd <- max(0,mean(sd[-grep("ontrol", sd[,1]),2]))
+    print("calculation")
   }
-
-
-  # calculate ratio
-  #if (!is.na(mean_pd) & !is.na(mean_control)){
-    
-    ratio <- mean_pd/mean_control
-    sd_ratio <- max(0, sd_pd / (mean_control^2) + (sd_control*(mean_pd**2)) / (mean_control^4))
-    
-  # } else if (!is.na(crop_data$percent_of_control) | !is.na(crop_data$percent_of_total) |
-  #            !is.na(crop_data$percent_of_loss)){
-  #   
-  #   crop_data <- Filter(function(x)!all(is.na(x)), crop_data[,c("group","percent_of_control","percent_of_total","percentage_loss")])
-  #   controls <- grep("ontrol",crop_data$group)
-  #   ratio <- mean(crop_data1[-controls,])
-  #   sd_ratio <- max(0,mean(crop_data$SD[-controls]), mean(crop_data$SEM[-controls] * sqrt(crop_data$n[-controls])), 
-  #                   mean(crop_data$CV[-controls]*crop_data$percent_of_control[-controls]),na.rm = TRUE )
-  #   
-  # } else if (length(col)>1){
-  #   
-  #   # for the first level
-  #   rows_level1 <- which(!is.na(crop_data[,col[1]]))
-  #   mean_value1 <- crop_data[rows_level1,col[1]]
-  #   mean_weights1 <-crop_data$n[rows_level1]/sum(crop_data$n[rows_level1])
-  #   means1 <- ddply(crop_data[rows_level1,], "group", function(x)wtd.mean(x[,col], x[,"n"]/sum(x[,"n"])))
-  #   sd1 <- ddply(crop_data[rows_level1,], "group", function(x)sqrt(weighted.sd(x[,col], x[,"n"]/sum(x[,"n"])))) 
-  #   
-  #   
-  #   
-  #   
-  #   
-  #}
+  
+  # Calculate ratio 
+  ratio <- mean_pd/mean_control
+  sd_ratio <- max(0, sd_pd / (mean_control^2) + (sd_control*(mean_pd**2)) / (mean_control^4))
+  
   return(c(ratio, sd_ratio))
 }
 
@@ -193,11 +153,49 @@ pmid <- c()
 vect_ratio <- c()
 vect_sd_ratio <- c()
 for (i in 1:length(list_pmid_tot)){
+  
   sub_data <- dataset2 %>% filter( PMID == list_pmid_tot[i])
+  
   if (isTRUE(length(levels(as.factor(sub_data[,21])))==1) & isTRUE(length(levels(as.factor(sub_data[,22])))==1) & 
       isTRUE(length(levels(as.factor(sub_data[,23])))==1) & isTRUE(length(levels(as.factor(sub_data[,24])))==1)){
-    r <- ratio(dataset2, list_pmid_tot[i])
-    print(r)
+    
+    # Get data filtered with PMID 
+    crop_data <- dataset2 %>% filter(PMID == list_pmid_tot[i])
+    # Get columns with values
+    col <- levels(droplevels(as.factor(crop_data$dta2)))
+    
+    # When measures are all in the same unit and is not a percentage 
+    if ((length(col) == 1) && (!(col %in% c("percent_of_control",
+                                            "percent_of_total", "percent_of_loss")))){
+      
+      print(c("general", i))
+      r <- ratio(crop_data, col)
+    } 
+    # When groups are not meausred in the same unit 
+    else if (length(col) >1){
+      print(c("col>1", i))
+      crop_data <- dataset2 %>% filter(PMID == list_pmid_tot[i])
+      col <- levels(droplevels(as.factor(crop_data$dta2)))
+      crop_data1 <- crop_data[which(!is.na(crop_data[,col[1]])),]
+      crop_data2 <- crop_data[which(!is.na(crop_data[,col[2]])),]
+      
+      # ratio by group
+      r1 <- ratio(crop_data1,col[1])
+      r2 <- ratio(crop_data2,col[2])
+      
+      #global ratio
+      r <- c(mean(r1[1],r2[1]), mean(r1[2], r2[2]))
+      
+    } 
+    # When measures are percentages 
+    else if (col %in% c("percent_of_control",
+                        "percent_of_total", "percent_of_loss")){
+      print(c("%", i))
+      means <- wtd.mean(crop_data[,col], crop_data[,"n"]/sum(crop_data[,"n"]))
+      sd <- sqrt(weighted.sd(crop_data[,col], crop_data[,"n"]/sum(crop_data[,"n"])))
+      r <- c(means, sd)
+    }
+    
     pmid <- c(pmid,i )
     vect_ratio <- c(vect_ratio, r[1])
     vect_sd_ratio <- c(vect_sd_ratio, r[2])
@@ -205,11 +203,6 @@ for (i in 1:length(list_pmid_tot)){
 }
 
 data_ratio <- data.frame("PMID" = c(list_pmid_tot[pmid]), "ratio" = vect_ratio, "v-ratio" = vect_sd_ratio)
-#data_ratio_merged <- merge(dataset2, data_10_ratio_tot, by = "PMID", all = TRUE)
-
-
-
-
 
 
 
@@ -220,17 +213,3 @@ ggplot(data_ratio, aes(x = PMID, y = ratio)) + geom_point(size = 1) +
         panel.grid = element_blank(),
         axis.line = element_line(size = 0.5, colour = "darkgrey"),
         axis.text.x = element_text(size = 7, angle = 90, hjust = 1))
-
-
-
-col <- levels(droplevels(as.factor(dataset2$dta2[which(dataset2$PMID == 18297291)])))
-crop_data <- dataset2 %>% filter(PMID == 18297291) ; crop_data
-mean_value <- crop_data[,col]
-mean_weights <-crop_data$n/sum(crop_data$n)
-means <- ddply(crop_data, "group", function(x)wtd.mean(x[,col], x[,"n"]/sum(x[,"n"])))
-sd <- ddply(crop_data, "group", function(x)sqrt(weighted.sd(x[,col], x[,"n"]/sum(x[,"n"]))))
-
-mean_control <- mean(means[grep("ontrol", means[,1]),2])
-mean_pd <- mean(means[-grep("ontrol", means[,1]),2])
-sd_control <- mean(sd[grep("ontrol", sd[,1]),2])
-sd_pd <- mean(sd[-grep("ontrol", sd[,1]),2])
