@@ -10,8 +10,8 @@ library(Hmisc)
 library(radiant.data)
 
 # Import data
-rawdata <- read.table("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRM4LLNDWUDXXWVDDBTBRECJM",
-                      header = TRUE,sep = ",")
+rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRMHMRBTKF7IF4YKB33BRFACA",
+                    header = TRUE,sep = ",")
 
 # Remove empty columns 
 dataset <- Filter(function(x)!all(is.na(x) | x == ""), rawdata)
@@ -142,33 +142,31 @@ ratio <- function(crop_data, col){
   } 
   # If there is no SD/SEM/CV values available
   else {
-    sd <- ddply(crop_data, "group", function(x)sqrt(weighted.sd(x[,col], x[,"n"]/sum(x[,"n"]))))
+    sd <- ddply(crop_data, "group_high_level", function(x)weighted.sd(x[,col], x[,"n"]/sum(x[,"n"])))
     sd_control <- max(0,mean(sd[grep("ontrol", sd[,1]),2]))   # if mean is a NA then sd control get the value 0
     sd_pd <- max(0,mean(sd[-grep("ontrol", sd[,1]),2]))
-    print("calculation")
+    print("calculation") 
   }
   
   # Calculate ratio 
   ratio <- mean_pd/mean_control
-  sd_ratio <- max(0, sd_pd / (mean_control^2) + (sd_control*(mean_pd**2)) / (mean_control^4))
+  sd_ratio <- max(0,sqrt(sd_pd^2 / (mean_control^2) + (sd_control^2*(mean_pd^2)) / (mean_control^4)))
   
   return(c(ratio, sd_ratio))
 }
 
 
 # 
-pmid <- c()
-vect_ratio <- c()
-vect_sd_ratio <- c()
+vect_ratio <- vector(length=length(list_pmid_tot))
+vect_sd_ratio <- vector(length=length(list_pmid_tot))
 for (i in 1:length(list_pmid_tot)){
   
-  sub_data <- dataset2 %>% filter( PMID == list_pmid_tot[i])
+  # Get data filtered with PMID 
+  crop_data <- dataset2[dataset2$PMID == list_pmid_tot[i],]
   
-  if (isTRUE(length(levels(as.factor(sub_data[,21])))==1) & isTRUE(length(levels(as.factor(sub_data[,22])))==1) & 
-      isTRUE(length(levels(as.factor(sub_data[,23])))==1) & isTRUE(length(levels(as.factor(sub_data[,24])))==1)){
+  if (isTRUE(length(levels(as.factor(crop_data[,21])))==1) & isTRUE(length(levels(as.factor(crop_data[,22])))==1) & 
+      isTRUE(length(levels(as.factor(crop_data[,23])))==1) & isTRUE(length(levels(as.factor(crop_data[,24])))==1)){
     
-    # Get data filtered with PMID 
-    crop_data <- dataset2 %>% filter(PMID == list_pmid_tot[i])
     # Get columns with values
     col <- levels(droplevels(as.factor(crop_data$dta2)))
     
@@ -200,17 +198,16 @@ for (i in 1:length(list_pmid_tot)){
                         "percent_of_total", "percent_of_loss")){
       print(c("%", i))
       means <- wtd.mean(crop_data[,col], crop_data[,"n"]/sum(crop_data[,"n"]))
-      sd <- sqrt(weighted.sd(crop_data[,col], crop_data[,"n"]/sum(crop_data[,"n"])))
+      sd <- weighted.sd(crop_data[,col], crop_data[,"n"]/sum(crop_data[,"n"]))
       r <- c(means, sd)
     }
     
-    pmid <- c(pmid,i )
-    vect_ratio <- c(vect_ratio, r[1])
-    vect_sd_ratio <- c(vect_sd_ratio, r[2])
+    vect_ratio[i] <- r[1]
+    vect_sd_ratio[i] <- r[2]
   }
 }
 
-data_ratio <- data.frame("PMID" = c(list_pmid_tot[pmid]), "ratio" = vect_ratio, "v-ratio" = vect_sd_ratio)
+data_ratio <- data.frame("PMID" = list_pmid_tot, "ratio" = vect_ratio, "v-ratio" = vect_sd_ratio)
 
 
 
