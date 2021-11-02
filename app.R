@@ -4,18 +4,21 @@ library(shinyWidgets)
 library(devtools)
 library(plyr)
 library(ggplot2)
-library(DT)
+library(gtools)
+library(Hmisc)
+library(radiant.data)
+library(tibble)
 
 # source updated functions of the shinyWidget package 
 source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-selectizeGroup.R")
 source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-utils.R")
 
 # Import data
-rawdata <- read.table("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRMGLEIVUFQMWHFDWHTBPLFHO",
-                      header = TRUE,sep = ",")
+rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRMHMRBTKF7IF4YKB33BRFACA",
+                    header = TRUE,sep = ",")
 
 # Import glossary
-glossary <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/glossary.md?token=AVOQPRMOVRBGS3ZGKA2W3BLBPJWFS",
+glossary <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/glossary.md?token=AVOQPRNRFBTYO7W6FWA6G5LBRKXM6",
                       header = TRUE,sep = "|")
 
 # Re-arrange glossary
@@ -42,10 +45,10 @@ dataset$region <- gsub("NA", "", dataset$region) ; head(dataset$region)
 dataset$region <- mapvalues(dataset$region,
                             c("A10 Cli", "A10 Rli", "caudate_nucleus ", "olfactory_bulb ", "SN dorsolateral",
                               "SN dorsomedial", "SN lateral", "SN medial", "SN middle", "SN posterolateral",
-                              "SN ventral", "SN ventrolateral"),
-                            c("A10 CLi", "A10 RLI", "caudate_Nucleus ", "olfactory_bulb", "SN Dorsolateral",
+                              "SN ventral", "SN ventrolateral", "SN medial_2", "SN medial_3"),
+                            c("A10 CLi", "A10 RLi", "caudate_Nucleus ", "olfactory_bulb", "SN Dorsolateral",
                               "SN Dorsomedial", "SN Lateral", "SN Medial", "SN Middle", "SN Posterolateral",
-                              "SN Ventral", "SN Ventrolateral"))
+                              "SN Ventral", "SN Ventrolateral", "SN Medial", "SN Medial"))
 
 dataset$group <- mapvalues(dataset$group, 
                            c("Control young", "PD without_l-dopa_reponse","PD without_l-dope_response", "LB Disorder "),
@@ -56,12 +59,20 @@ dataset$stain_marker <- mapvalues(dataset$stain_marker,
                                   c("ChAT"))
 
 dataset$cell_type <- mapvalues(dataset$cell_type, 
-                               c("CaN-pos", "large ", "noradrenergic", "purkinje_cell"),
-                               c("CaN_pos", "large", "Noradrenergic", "Purkinje_Cell"))
+                               c("CaN-pos", "noradrenergic", "purkinje_cell"),
+                               c("CaN_pos", "Noradrenergic", "Purkinje_Cell"))
+dataset$cell_type[which(grepl("golgi_type",dataset$cell_type))] <- "golgi_type"
 
 dataset$quantification_method <- mapvalues(dataset$quantification_method,
                                            c("manual", "stereology", "Sterology"),
                                            c("Manual", "Stereology", "Stereology"))
+
+# Duplicate a control
+rowid <- which(dataset$PMID == 17894336 & dataset$group == "Control " &
+                 dataset$region == "putamen dorsolateral" & dataset$cell_type == "CaN_pos")
+dataset <- add_row(dataset, dataset[rowid,], .before = rowid)
+dataset$region[rowid] <- dataset$region[rowid+2]
+dataset$region[rowid+1] <- dataset$region[rowid+3]
 
 
 ### Define UI
