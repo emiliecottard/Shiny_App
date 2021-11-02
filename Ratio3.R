@@ -214,4 +214,15 @@ for (i in 300:600){
   vect_sd_ratio[i] <- max(0,sd_ratio)
 }
   
+ratio_data <- cbind(ratio_data, vect_ratio, vect_sd_ratio)
+ratio_data <- ratio_data[which(vect_ratio <2),]
 
+
+# Plot
+ggplot(ratio_data[,c(1,52)], aes(x = PMID, y = vect_ratio)) + geom_point(size = 1) +
+  geom_errorbar(aes(ymin=ratio_data$vect_ratio-ratio_data$vect_sd_ratio,
+                    ymax=ratio_data$vect_ratio+ratio_data$vect_sd_ratio), width = .2) + 
+  theme(panel.background = element_rect(fill = "white"),
+        panel.grid = element_blank(),
+        axis.line = element_line(size = 0.5, colour = "darkgrey"),
+        axis.text.x = element_text(size = 7, angle = 90, hjust = 1))
