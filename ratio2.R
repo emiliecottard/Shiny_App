@@ -1,10 +1,7 @@
 # Packages
-library(shiny)
-library(shinyWidgets)
 library(devtools)
 library(plyr)
 library(ggplot2)
-library(DT)
 library(gtools)
 library(Hmisc)
 library(radiant.data)
@@ -46,8 +43,8 @@ dataset$stain_marker <- mapvalues(dataset$stain_marker,
                                   c("ChAT"))
 
 dataset$cell_type <- mapvalues(dataset$cell_type, 
-                               c("CaN-pos", "large ", "noradrenergic", "purkinje_cell"),
-                               c("CaN_pos", "large", "Noradrenergic", "Purkinje_Cell"))
+                               c("CaN-pos", "noradrenergic", "purkinje_cell"),
+                               c("CaN_pos", "Noradrenergic", "Purkinje_Cell"))
 
 dataset$quantification_method <- mapvalues(dataset$quantification_method,
                                            c("manual", "stereology", "Sterology"),
@@ -70,7 +67,7 @@ dataset <- dataset[-c(empty_cells),]
 dta <- dta[-c(empty_cells)]
 
 # Replace the column number by its name
-dta2 <- lapply(dta,function(x)(colnames(dataset[,c(30:41)])[x])) ; head(dta2)
+dta2 <- lapply(dta,function(x)(colnames(dataset[,c(30:41)])[x])) 
 
 # Merge it to the dataset
 dataset2 <- dataset
