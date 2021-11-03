@@ -14,7 +14,7 @@ source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/
 source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-utils.R")
 
 # Import data
-rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRMHMRBTKF7IF4YKB33BRFACA",
+rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRNUVJAIP5C7S4YXSV3BROMMI",
                     header = TRUE,sep = ",")
 
 # Import glossary
@@ -55,8 +55,8 @@ dataset$group <- mapvalues(dataset$group,
                            c("control young", "PD without_l-dopa_response", "PD without_l-dopa_response","LB_Disorder"))
 
 dataset$stain_marker <- mapvalues(dataset$stain_marker, 
-                                  c("ChAt"),
-                                  c("ChAT"))
+                                  c("ChAt", "ACh"),
+                                  c("ChAT", "ACH"))
 
 dataset$cell_type <- mapvalues(dataset$cell_type, 
                                c("CaN-pos", "noradrenergic", "purkinje_cell"),
@@ -74,6 +74,17 @@ dataset <- add_row(dataset, dataset[rowid,], .before = rowid)
 dataset$region[rowid] <- dataset$region[rowid+2]
 dataset$region[rowid+1] <- dataset$region[rowid+3]
 
+# Remove empty raws (percent of total == FALSE )
+dataset <- dataset[-which(!is.na(dataset$percent_of_total)),]
+
+# Remove empty column percent of total
+dataset <- Filter(function(x)!all(is.na(x)), dataset)
+
+# Remove a specific publication due to lack of information of values are NA
+dataset <- dataset[-which(dataset$PMID == 8809817),]
+dataset <- dataset[-which(dataset$PMID == 10459912 & dataset$region == "central_grey_substance " &
+                            dataset$stain_marker == "ACH" & dataset$cell_type == "Dopaminergic_melanised"),]
+dataset <-dataset[-which(dataset$PMID == 2570794 & is.na(dataset$percentage_loss)),]
 
 ### Define UI
   
