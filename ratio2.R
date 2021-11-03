@@ -7,7 +7,7 @@ library(Hmisc)
 library(radiant.data)
 
 # Import data
-rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRMHMRBTKF7IF4YKB33BRFACA",
+rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRNUVJAIP5C7S4YXSV3BROMMI",
                     header = TRUE,sep = ",")
 
 # Remove empty columns 
@@ -29,26 +29,46 @@ dataset$region <- gsub("NA", "", dataset$region) ; head(dataset$region)
 dataset$region <- mapvalues(dataset$region,
                             c("A10 Cli", "A10 Rli", "caudate_nucleus ", "olfactory_bulb ", "SN dorsolateral",
                               "SN dorsomedial", "SN lateral", "SN medial", "SN middle", "SN posterolateral",
-                              "SN ventral", "SN ventrolateral"),
-                            c("A10 CLi", "A10 RLI", "caudate_Nucleus ", "olfactory_bulb", "SN Dorsolateral",
+                              "SN ventral", "SN ventrolateral", "SN medial_2", "SN medial_3"),
+                            c("A10 CLi", "A10 RLi", "caudate_Nucleus ", "olfactory_bulb", "SN Dorsolateral",
                               "SN Dorsomedial", "SN Lateral", "SN Medial", "SN Middle", "SN Posterolateral",
-                              "SN Ventral", "SN Ventrolateral"))
+                              "SN Ventral", "SN Ventrolateral", "SN Medial", "SN Medial"))
 
 dataset$group <- mapvalues(dataset$group, 
                            c("Control young", "PD without_l-dopa_reponse","PD without_l-dope_response", "LB Disorder "),
                            c("control young", "PD without_l-dopa_response", "PD without_l-dopa_response","LB_Disorder"))
 
 dataset$stain_marker <- mapvalues(dataset$stain_marker, 
-                                  c("ChAt"),
-                                  c("ChAT"))
+                                  c("ChAt", "ACh"),
+                                  c("ChAT", "ACH"))
 
 dataset$cell_type <- mapvalues(dataset$cell_type, 
                                c("CaN-pos", "noradrenergic", "purkinje_cell"),
                                c("CaN_pos", "Noradrenergic", "Purkinje_Cell"))
+dataset$cell_type[which(grepl("golgi_type",dataset$cell_type))] <- "golgi_type"
 
 dataset$quantification_method <- mapvalues(dataset$quantification_method,
                                            c("manual", "stereology", "Sterology"),
                                            c("Manual", "Stereology", "Stereology"))
+
+# Duplicate a control
+rowid <- which(dataset$PMID == 17894336 & dataset$group == "Control " &
+                 dataset$region == "putamen dorsolateral" & dataset$cell_type == "CaN_pos")
+dataset <- add_row(dataset, dataset[rowid,], .before = rowid)
+dataset$region[rowid] <- dataset$region[rowid+2]
+dataset$region[rowid+1] <- dataset$region[rowid+3]
+
+# Remove empty raws (percent of total == FALSE )
+dataset <- dataset[-which(!is.na(dataset$percent_of_total)),]
+
+# Remove empty column percent of total
+dataset <- Filter(function(x)!all(is.na(x)), dataset)
+
+# Remove a specific publication due to lack of information of values are NA
+dataset <- dataset[-which(dataset$PMID == 8809817),]
+dataset <- dataset[-which(dataset$PMID == 10459912 & dataset$region == "central_grey_substance " &
+                            dataset$stain_marker == "ACH" & dataset$cell_type == "Dopaminergic_melanised"),]
+dataset <-dataset[-which(dataset$PMID == 2570794 & is.na(dataset$percentage_loss)),]
 
 
 # Get the columns containing the values
