@@ -231,7 +231,9 @@ ratio_data <- cbind(ratio_data, vect_ratio, vect_sd_ratio)
 
 # Regroup PMIDS with same variables but values initially in different units and
 # do the mean of the ratio and the sd 
-ratio_dat <- ddply(ratio_data, c(1,21:24), summarize, mean(vect_ratio),mean(vect_sd_ratio))   
+ratio_data0 <- ddply(ratio_data, c(1,21:24), summarize, mean(vect_ratio),mean(vect_sd_ratio))   
+ratio_data <- ratio_data[!duplicated(ratio_data[,c(1,21:24)]),]
+ratio_data[,c("vect_ratio","vect_sd_ratio")] <- ratio_data0[,c("mean(vect_ratio)","mean(vect_sd_ratio)")]
 
 # Remove odd values
 ratio_data <- ratio_data[-which(vect_ratio >=1 | vect_sd_ratio >50),]
@@ -245,3 +247,4 @@ ggplot(ratio_data[,c(1,51)], aes(x = PMID, y = vect_ratio)) + geom_point(size = 
         panel.grid = element_blank(),
         axis.line = element_line(size = 0.5, colour = "darkgrey"),
         axis.text.x = element_text(size = 7, angle = 90, hjust = 1))
+colnames(ratio_data)
