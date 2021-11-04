@@ -65,7 +65,7 @@ dataset <- dataset[-which(!is.na(dataset$percent_of_total)),]
 # Remove empty column percent of total
 dataset <- Filter(function(x)!all(is.na(x)), dataset)
 
-# Remove a specific publication due to lack of information of values are NA
+# Remove specific publications due to lack of information or because values are NA
 dataset <- dataset[-which(dataset$PMID == 8809817),]
 dataset <- dataset[-which(dataset$PMID == 10459912 & dataset$region == "central_grey_substance " &
                             dataset$stain_marker == "ACH" & dataset$cell_type == "Dopaminergic_melanised"),]
@@ -103,24 +103,22 @@ dataset2[c(which(dataset2[,"region"]== " ")),"region"] <-
 dataset2[,c(21:24)] <- na.replace(dataset2[,c(21:24)],"NA")
 
 # Transform Nas of columns n (number of cases) by 1 for weighted meqn calculations
-dataset2$n <- na.replace(dataset$n,1)
-
-
-
-# Create new data 
-# remove duplicated rows of region / stain marker / cell type and quantification method 
-dataset2$group_high_level <- ifelse(grepl("ontrol", dataset2$group) |
-                                      grepl("NPD", dataset2$group) | 
-                                      grepl("NMD", dataset2$group),
-                                      "Control", "PD") 
+dataset2$n <- na.replace(dataset2$n,1)
 
 
 
 ### Calculate the means and sds per groups with same variables 
 
+# Create new data 
+dataset2$group_high_level <- ifelse(grepl("ontrol", dataset2$group) |
+                                      grepl("NPD", dataset2$group) | 
+                                      grepl("NMD", dataset2$group),
+                                      "Control", "PD") 
 dataset3 <- cbind("line"= 1:dim(dataset2)[1], dataset2)
 
-synth_data <- dataset2[!duplicated(dataset2[,c(1,21:24,48)]),] 
+# Remove duplicated rows of region / stain marker / cell type and quantification method 
+synth_data <- dataset2[!duplicated(dataset2[,c(1,21:24,47:48)]),] 
+
 
 # Function calculates mean and sd for a group 
 mean_sd <- function(data, col){
@@ -164,40 +162,19 @@ for (i in 1:dim(synth_data)[1]){
   # Get all the rows that have the same variables 
   crop_data <- dataset3[paste(dataset3$PMID, dataset3$group_high_level, dataset3$region,
                               dataset3$stain_marker, dataset3$cell_type, 
-                              dataset3$quantification_method) %in%
-           paste(synth_data$PMID[i],synth_data$group_high_level[i],
-                 synth_data$region[i], synth_data$stain_marker[i],
-                 synth_data$cell_type[i], synth_data$quantification_method[i]),]
+                              dataset3$quantification_method, dataset3$dta2) %in%
+                          paste(synth_data$PMID[i],synth_data$group_high_level[i],
+                                synth_data$region[i], synth_data$stain_marker[i],
+                                synth_data$cell_type[i], synth_data$quantification_method[i],
+                                synth_data$dta2[i]),]
   
   # Get the columns with the values
   col <- levels(droplevels(as.factor(crop_data$dta2)))
   
   # Calculate mean and sd 
-  
-  # For rows with values in 2 different units 
-  if (length(col)>1){
-    crop_data1 <- crop_data[which(!is.na(crop_data[,col[1]])),]
-    crop_data2 <- crop_data[which(!is.na(crop_data[,col[2]])),]
-    
-    # mean and sd by group
-    result1 <- mean_sd(crop_data1, col[1])
-    #result1 <- ifelse(col[1] %in% c("percent_of_control","percentage_loss"),
-                      # result1 /100,
-                      # result1)
-    result2 <- mean_sd(crop_data2, col[2])
-    #result2 <- ifelse(col[2] %in% c("percent_of_control","percentage_loss"),
-                      # c(result2[1]/100,result2[2]/100),
-                      # result2)
-    vect_mean[i] <- paste(result1[1],result2[1])
-    vect_mean[i] <- ifelse(str_detect(vect_mean[i]," "),vect_mean[i], paste(vect_mean[i], " 1") )
-    vect_sd[i] <- paste(result1[2], result[2])
-    vect_sd[i] <- ifelse(str_detect(vect_sd[i]," "),vect_sd[i], paste(vect_sd[i], " 1") )
-    
-    } else {
-      result <- mean_sd(crop_data, col)
-      vect_mean[i] <- result[1]
-      vect_sd[i] <- result[2]
-    }
+  result <- mean_sd(crop_data, col)
+  vect_mean[i] <- result[1]
+  vect_sd[i] <- result[2]
 }
 
 synth_data <- cbind(synth_data, vect_mean, vect_sd)
@@ -206,52 +183,37 @@ synth_data <- cbind(synth_data, vect_mean, vect_sd)
 
 ### Calculate the ratio for PDs and Controls with same variables 
 
-ratio_data <- synth_data[!duplicated(synth_data[,c(1,21:24)]),]
+ratio_data <- synth_data[!duplicated(synth_data[,c(1,21:24,47)]),]
 
 vect_ratio <- vector(length=dim(ratio_data)[1])
 vect_sd_ratio <- vector(length=dim(ratio_data)[1])
+
 for (i in 1:dim(ratio_data)[1]){
   crop_data <-synth_data[paste(synth_data$PMID, synth_data$region,
-                            synth_data$stain_marker, synth_data$cell_type, 
-                            synth_data$quantification_method) %in%
-                        paste(ratio_data$PMID[i],
-                              ratio_data$region[i], ratio_data$stain_marker[i],
-                              ratio_data$cell_type[i], ratio_data$quantification_method[i]),]
+                               synth_data$stain_marker, synth_data$cell_type, 
+                               synth_data$quantification_method, synth_data$dta2) %in%
+                           paste(ratio_data$PMID[i],
+                                 ratio_data$region[i], ratio_data$stain_marker[i],
+                                 ratio_data$cell_type[i], ratio_data$quantification_method[i],
+                                 ratio_data$dta2[i]),]
   
   # Get the columns with the values
   col <- levels(droplevels(as.factor(crop_data$dta2)))
   
   # For rows where values are a percentage 
-  if (length(col) ==1 && (col %in% c("percent_of_control","percentage_loss"))){
-    print("in %")
-    ratio <- wtd.mean(as.numeric(crop_data[,"vect_mean"]), 
-                      as.numeric(crop_data[,"n"])/sum(as.numeric(crop_data[,"n"])))/100  
-    print(ratio)
-    sd_ratio <- weighted.sd(as.numeric(crop_data[,"vect_sd"]), 
-                            as.numeric(crop_data[,"n"])/sum(as.numeric(crop_data[,"n"])))/100 ### right ??
-  }
-  # For rows with values in 2 different units 
-  else if (length(col)>1){
-    ratio1 <- as.numeric(str_split(crop_data[grepl("PD", crop_data$group_high_level), "vect_mean"], " ")[[1]][1]) /
-              as.numeric(crop_data[grepl("Control", crop_data$group_high_level), "vect_mean"])
-    ratio2 <- as.numeric(str_split(crop_data[grepl("PD", crop_data$group_high_level), "vect_mean"], " ")[[1]][2]) /100
-
-    # Global ratio
-    ratio <- mean(ratio1, ratio2)     # weighted mean ?????
+  if (col %in% c("percent_of_control","percentage_loss")){
+    ratio <- wtd.mean(crop_data[,"vect_mean"], 
+                      crop_data[,"n"]/sum(crop_data[,"n"]))/100  
     
-    sd1 <- as.numeric(str_split(crop_data[grepl("PD", crop_data$group_high_level), "vect_sd"], " ")[[1]][1]) /
-      as.numeric(crop_data[grepl("Control", crop_data$group_high_level), "vect_sd"]) 
-    sd2 <- as.numeric(str_split(crop_data[grepl("PD", crop_data$group_high_level), "vect_sd"], " ")[[1]][2]) /100
-    
-    # Global sd
-    sd_ratio <- mean(sd1, sd2)     # weighted mean ?????
+    sd_ratio <- weighted.sd(crop_data[,"vect_sd"], 
+                            crop_data[,"n"]/sum(crop_data[,"n"]))/100 ### right ??
   }
   # For rows where values are not a percentage 
   else {
-    mean_control <- as.numeric(crop_data[grepl("Control", crop_data$group_high_level), "vect_mean"])
-    mean_pd <- as.numeric(crop_data[grepl("PD", crop_data$group_high_level), "vect_mean"])
-    sd_control <- as.numeric(crop_data[grepl("Control", crop_data$group_high_level), "vect_sd"])
-    sd_pd <- as.numeric(crop_data[grepl("PD", crop_data$group_high_level), "vect_sd"])
+    mean_control <- crop_data[grepl("Control", crop_data$group_high_level), "vect_mean"]
+    mean_pd <- crop_data[grepl("PD", crop_data$group_high_level), "vect_mean"]
+    sd_control <- crop_data[grepl("Control", crop_data$group_high_level), "vect_sd"]
+    sd_pd <- crop_data[grepl("PD", crop_data$group_high_level), "vect_sd"]
     
     # Ratio 
     ratio <- mean_pd / mean_control
@@ -264,9 +226,15 @@ for (i in 1:dim(ratio_data)[1]){
   vect_ratio[i] <- max(0,ratio)
   vect_sd_ratio[i] <- max(0,sd_ratio)
 }
-  
+
 ratio_data <- cbind(ratio_data, vect_ratio, vect_sd_ratio)
-ratio_data <- ratio_data[-which(vect_sd_ratio >50),]
+
+# Regroup PMIDS with same variables but values initially in different units and
+# do the mean of the ratio and the sd 
+ratio_dat <- ddply(ratio_data, c(1,21:24), summarize, mean(vect_ratio),mean(vect_sd_ratio))   
+
+# Remove odd values
+ratio_data <- ratio_data[-which(vect_ratio >=1 | vect_sd_ratio >50),]
 
 
 # Plot
