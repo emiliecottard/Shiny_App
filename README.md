@@ -1,5 +1,3 @@
-# Shiny_App
-
 # The dataset 
 
 All the available data on quantifying cell numbers in cases of parkisons disease, comapred to controls were collected and summarised in a data table.
