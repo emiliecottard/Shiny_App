@@ -138,7 +138,6 @@ for (i in 1:length(group_high_level2)){
                                                           dataset2$region[i], dataset2$stain_marker[i],
                                                           dataset2$cell_type[i], dataset2$quantification_method[i],
                                                           dataset2$dta[i])]))
-  
   group_high_level2[i] <- ifelse(length(a)==1, a, ifelse(length(a)==2,a[-grepl("Control", a)], ifelse(dataset2$group_high_level[i] != "Control", dataset2$group_high_level[i], NA )))
   
 }
@@ -167,10 +166,12 @@ for (i in 1:length(lines)){
   if(length(rowid)==1){
     dataset2$group_high_level2[rowid] <- factor_level[1]
     dataset2$group_high_level2[rowid+1] <- factor_level[2]
+    print(lines)
   } else {
     dataset2$group_high_level2[rowid[1]:(rowid[1]-1 +length(rowid))] <- factor_level[1]
     dataset2$group_high_level2[(rowid[1]+length(rowid)):(rowid[1]-1+2*length(rowid))] <- factor_level[2]
-    lines<- lines[-c((i+1):(i+length(rowid)-1))]
+    lines<- lines[-c((i+1):(min(i+length(rowid)-1, length(lines))))]
+    print(lines)
   }
 }
 

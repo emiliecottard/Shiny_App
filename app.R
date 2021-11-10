@@ -27,7 +27,7 @@ rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVu
                     header = TRUE,sep = ",")
 
 # Import glossary
-glossary <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/glossary.md?token=AVOQPRNRFBTYO7W6FWA6G5LBRKXM6",
+glossary <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/glossary.md?token=AVOQPRPSVP2NCKR5LG3MKCTBSUEN6",
                       header = TRUE,sep = "|")
 
 # Re-arrange glossary
@@ -60,8 +60,8 @@ dataset$region <- mapvalues(dataset$region,
                               "SN Ventral", "SN Ventrolateral", "SN Medial", "SN Medial"))
 
 dataset$group <- mapvalues(dataset$group, 
-                           c("Control young", "PD without_l-dopa_reponse","PD without_l-dope_response", "LB Disorder "),
-                           c("control young", "PD without_l-dopa_response", "PD without_l-dopa_response","LB_Disorder "))
+                           c("Control young", "PD without_l-dopa_reponse"),
+                           c("control young", "PD without_l-dopa_response"))
 
 dataset$stain_marker <- mapvalues(dataset$stain_marker, 
                                   c("ChAt", "ACh"),
@@ -73,8 +73,8 @@ dataset$cell_type <- mapvalues(dataset$cell_type,
 dataset$cell_type[which(grepl("golgi_type",dataset$cell_type))] <- "golgi_type"
 
 dataset$quantification_method <- mapvalues(dataset$quantification_method,
-                                           c("manual", "stereology", "Sterology"),
-                                           c("Manual", "Stereology", "Stereology"))
+                                           c("manual", "stereology"),
+                                           c("Manual", "Stereology"))
 
 # Duplicate a control
 rowid <- which(dataset$PMID == 17894336 & dataset$group == "Control " &
@@ -176,13 +176,16 @@ for (i in 1:length(lines)){
                                                                      dataset2$cell_type[rowid], dataset2$quantification_method[rowid],
                                                                      dataset2$dta[rowid])]))
   factor_level <- factor_level[-grepl("Control", factor_level)]
+  print(i)
+  print(factor_level)
+  print(length(rowid))
   if(length(rowid)==1){
     dataset2$group_high_level2[rowid] <- factor_level[1]
     dataset2$group_high_level2[rowid+1] <- factor_level[2]
   } else {
     dataset2$group_high_level2[rowid[1]:(rowid[1]-1 +length(rowid))] <- factor_level[1]
     dataset2$group_high_level2[(rowid[1]+length(rowid)):(rowid[1]-1+2*length(rowid))] <- factor_level[2]
-    lines<- lines[-c((i+1):(i+length(rowid)-1))]
+    lines<- lines[-c((i+1):(min(i+length(rowid)-1, length(lines))))]
   }
 }
 
@@ -359,7 +362,11 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
         quant_meth = list( inputId = "quantification_method", 
                            placeholder = 'Select a quantification method')
       )
-    )
+    ),
+    noUiSliderInput(inputId = "ratio", min = 0, max = 150, value = c(0,100), 
+                    step = 5, color = "white", height = "10px"),
+    noUiSliderInput(inputId = "sd_ratio", min = 0, max = 150, value = c(0,100),
+                    color = "white", height = "10px")
   ),
   mainPanel(
      fluidRow(plotOutput("plot1", click = "plot_click"),
@@ -375,6 +382,19 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
 ## Define server
 
 server <- function(input, output, session){
+  max_ratio <- reactive(input$ratio[2])
+  min_ratio <- reactive(input$ratio[1])
+  res_mod <- eventReactive(input$ratio | input$sd_ratio, {
+    min_sd_ratio <- as.numeric(input$sd_ratio[1])
+    max_sd_ratio <- as.numeric(input$sd_ratio[2])
+    
+    res_mod <- res_mod()[which(
+      vect_ratio >= min_ratio() & 
+      vect_ratio <= max_ratio() &
+      vect_sd_ratio <= min_ratio &
+      vect_sd_ratio >= min_ratio),]
+  })
+  
   res_mod <- callModule(
     module = selectizeGroupServer,
     id = "my_filters",
@@ -384,6 +404,7 @@ server <- function(input, output, session){
     inline = FALSE
   )
 
+  
   # Create a boxplot
   output$plot1 <- renderPlot({
     ggplot(res_mod(), aes(x = PMID, y = vect_ratio, color = group_high_level2)) + geom_point(size = 1) +
