@@ -162,7 +162,7 @@ dataset2$group_high_level <- apply(dataset2,1,function(x)ifelse(grepl("ontrol", 
                                                                               "AD",
                                                                               x["group"]))))
 group_high_level2 <- vector(length= dim(dataset2)[1])
-#for(i in 1:length(group_high_level2)){
+
 for (i in 1: length(group_high_level2)){
   a <- levels(as.factor(dataset2$group_high_level[paste(dataset2$PMID, dataset2$region,
                                                         dataset2$stain_marker, dataset2$cell_type, 
@@ -194,9 +194,6 @@ for (i in 1:length(lines)){
                                                                      dataset2$cell_type[rowid], dataset2$quantification_method[rowid],
                                                                      dataset2$dta[rowid])]))
   factor_level <- factor_level[-grepl("Control", factor_level)]
-  print(i)
-  print(factor_level)
-  print(length(rowid))
   if(length(rowid)==1){
     dataset2$group_high_level2[rowid] <- factor_level[1]
     dataset2$group_high_level2[rowid+1] <- factor_level[2]
@@ -339,7 +336,7 @@ ratio_data0 <- ddply(ratio_data,
                        "quantification_method","group_high_level2"), 
                      summarize, 
                      mean(vect_ratio),
-                     mean(vect_sd_ratio))   
+                     mean(vect_sd_ratio))
 ratio_data <- ratio_data[!duplicated(ratio_data[,c("PMID","region", "sub.region", "stain_marker","cell_type",
                                                    "quantification_method","group_high_level2")]),]
 ratio_data[,c("vect_ratio","vect_sd_ratio")] <- ratio_data0[,c("mean(vect_ratio)",
