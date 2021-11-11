@@ -153,8 +153,8 @@ for (i in 1:length(group_high_level2)){
                                                           dataset2$region[i], dataset2$stain_marker[i],
                                                           dataset2$cell_type[i], dataset2$quantification_method[i],
                                                           dataset2$dta[i])]))
-  
-  group_high_level2[i] <- ifelse(length(a)==1, a, ifelse(length(a)==2,a[-grepl("Control", a)], ifelse(dataset2$group_high_level[i] != "Control", dataset2$group_high_level[i], NA )))
+  print(a)
+  group_high_level2[i] <- ifelse(length(a)==1, a, ifelse(length(a)==2,a[!grepl("Control", a)], ifelse(dataset2$group_high_level[i] != "Control", dataset2$group_high_level[i], NA )))
   
 }
 
@@ -351,7 +351,7 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
                                placeholder = 'Select a rob score'),
         data_type = list( inputId = "data_type",
                           placeholder = 'Select a type of data'),
-        group = list( inputId = "group", 
+        group_high_level = list( inputId = "group_high_level", 
                       placeholder = 'Select a group'),
         region = list( inputId = "region", 
                       placeholder = 'Select a region'),
@@ -363,10 +363,8 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
                            placeholder = 'Select a quantification method')
       )
     ),
-    noUiSliderInput(inputId = "ratio", min = 0, max = 150, value = c(0,100), 
-                    step = 5, color = "white", height = "10px"),
-    noUiSliderInput(inputId = "sd_ratio", min = 0, max = 150, value = c(0,100),
-                    color = "white", height = "10px")
+    sliderInput("ratio","Ratio", min = 0, max = 150, value = c(0,100)),
+    sliderInput("sd_ratio","SD of the ratio", min = 0, max = 150, value = c(0,100))
   ),
   mainPanel(
      fluidRow(plotOutput("plot1", click = "plot_click"),
@@ -382,24 +380,11 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
 ## Define server
 
 server <- function(input, output, session){
-  max_ratio <- reactive(input$ratio[2])
-  min_ratio <- reactive(input$ratio[1])
-  res_mod <- eventReactive(input$ratio | input$sd_ratio, {
-    min_sd_ratio <- as.numeric(input$sd_ratio[1])
-    max_sd_ratio <- as.numeric(input$sd_ratio[2])
-    
-    res_mod <- res_mod()[which(
-      vect_ratio >= min_ratio() & 
-      vect_ratio <= max_ratio() &
-      vect_sd_ratio <= min_ratio &
-      vect_sd_ratio >= min_ratio),]
-  })
-  
   res_mod <- callModule(
     module = selectizeGroupServer,
     id = "my_filters",
     data = final_data,
-    vars = c("year_published", "rob_score", "data_type", "group", "region",
+    vars = c("year_published", "rob_score", "data_type", "group_high_level", "region",
              "stain_marker", "cell_type", "quantification_method"),
     inline = FALSE
   )
