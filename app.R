@@ -41,23 +41,28 @@ dataset <- subset(dataset, select = -X1)
 
 
 # Merging groups and sub groups 
-dataset$region <- c(paste(dataset$region, dataset$sub.region, sep = " "))  ; head(dataset)
+#dataset$region <- c(paste(dataset$region, dataset$sub.region, sep = " "))  ; head(dataset)
 dataset$group <- c(paste(dataset$group, dataset$sub.group, sep = " ")) ; head(dataset)
-dataset <- subset(dataset, select = -c(sub.region,sub.group)) ; colnames(dataset)
+dataset <- subset(dataset, select = -c(sub.group)) ; colnames(dataset)
 
 
 # Removing unnecessary NAs in  merged columns
 dataset$group <- gsub("NA", "", dataset$group) ; head(dataset$group)
-dataset$region <- gsub("NA", "", dataset$region) ; head(dataset$region)
+#dataset$region <- gsub("NA", "", dataset$region) ; head(dataset$region)
 
 # Harmonizing terms 
 dataset$region <- mapvalues(dataset$region,
-                            c("A10 Cli", "A10 Rli", "caudate_nucleus ", "olfactory_bulb ", "SN dorsolateral",
-                              "SN dorsomedial", "SN lateral", "SN medial", "SN middle", "SN posterolateral",
-                              "SN ventral", "SN ventrolateral", "SN medial_2", "SN medial_3"),
-                            c("A10 CLi", "A10 RLi", "caudate_Nucleus ", "olfactory_bulb", "SN Dorsolateral",
-                              "SN Dorsomedial", "SN Lateral", "SN Medial", "SN Middle", "SN Posterolateral",
-                              "SN Ventral", "SN Ventrolateral", "SN Medial", "SN Medial"))
+                            c("caudate_nucleus", "Hypothal"),
+                            c("caudate_Nucleus", "hypothal"))
+
+dataset$sub.region <- mapvalues(dataset$sub.region,
+                            c("Caudal", "Cli", "dorsolateral", "dorsomedial", "intermediate",
+                              "lateral", "medial", "middle", "posterolateral", "Rli", "rostral",
+                              "ventral", "ventrolateral", "ventromedial", "medial_2", "medial_3"),
+                            c("caudal", "CLi", "Dorsolateral", "Dorsomedial", "Intermediate",
+                              "Lateral", "Medial", "Middle", "Posterolateral", "RLi", "Rostral",
+                              "Ventral", "Ventrolateral", "Ventromedial", "Medial", "Medial"))
+
 
 dataset$group <- mapvalues(dataset$group, 
                            c("Control young", "PD without_l-dopa_reponse"),
@@ -77,11 +82,25 @@ dataset$quantification_method <- mapvalues(dataset$quantification_method,
                                            c("Manual", "Stereology"))
 
 # Duplicate a control
-rowid <- which(dataset$PMID == 17894336 & dataset$group == "Control " &
-                 dataset$region == "putamen dorsolateral" & dataset$cell_type == "CaN_pos")
+rowid <- which(dataset$PMID == 17894336 & dataset$group == "Control " & dataset$cell_type == "CaN_pos")
 dataset <- add_row(dataset, dataset[rowid,], .before = rowid)
 dataset$region[rowid] <- dataset$region[rowid+2]
+dataset$sub.region[rowid] <- dataset$sub.region[rowid+2]
 dataset$region[rowid+1] <- dataset$region[rowid+3]
+dataset$sub.region[rowid+1] <- dataset$sub.region[rowid+3]
+
+rowid2 <- which(dataset$PMID == 9039456 & dataset$stain_marker == "HLA-DR" &
+                 is.na(dataset$cell_type))
+dataset <- add_row(dataset, dataset[rowid2,], .before = rowid2)
+dataset$cell_type[rowid2] <- levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456])))][1]
+dataset$cell_type[rowid2+1] <- levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456])))][2]
+
+rowid3 <- which(dataset$PMID == 9039456 & dataset$stain_marker == "Ki-M1P" &
+                  is.na(dataset$cell_type))
+dataset <- add_row(dataset, dataset[rowid3,], .before = rowid3)
+dataset$cell_type[rowid3] <- levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456])))][1]
+dataset$cell_type[rowid3+1] <- levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456])))][2]
+
 
 # Remove empty raws (percent of total == FALSE )
 dataset <- dataset[-which(!is.na(dataset$percent_of_total)),]
@@ -91,7 +110,7 @@ dataset <- Filter(function(x)!all(is.na(x)), dataset)
 
 # Remove specific publications due to lack of information or because values are NA
 dataset <- dataset[-which(dataset$PMID == 8809817),]
-dataset <- dataset[-which(dataset$PMID == 10459912 & dataset$region == "central_grey_substance " &
+dataset <- dataset[-which(dataset$PMID == 10459912 & dataset$region == "central_grey_substance" &
                             dataset$stain_marker == "ACH" & dataset$cell_type == "Dopaminergic_melanised"),]
 dataset <-dataset[-which(dataset$PMID == 2570794 & is.na(dataset$percentage_loss)),]
 
@@ -128,9 +147,7 @@ dataset2 <- dataset2[-which(dataset2$PMID == "6089493" & dataset2$dta == "number
 
 # Transfrom NAs or " " in Region/stain marker / cell type / quantification method into factors 
 # Column region
-dataset2[c(which(dataset2[,"region"]== " ")),"region"] <- 
-  gsub(" ", "NA", dataset2[c(which(dataset2[,"region"]== " ")),"region"])
-dataset2[,c("region","stain_marker","cell_type","quantification_method")] <- na.replace(dataset2[,c("region","stain_marker","cell_type","quantification_method")],"NA")
+dataset2[,c("region", "sub.region","stain_marker","cell_type","quantification_method")] <- na.replace(dataset2[,c("region","stain_marker","cell_type","quantification_method")],"NA")
 
 # Transform Nas of columns n (number of cases) by 1 for weighted meqn calculations
 dataset2$n <- na.replace(dataset2$n,1)
@@ -145,7 +162,8 @@ dataset2$group_high_level <- apply(dataset2,1,function(x)ifelse(grepl("ontrol", 
                                                                               "AD",
                                                                               x["group"]))))
 group_high_level2 <- vector(length= dim(dataset2)[1])
-for (i in 1:length(group_high_level2)){
+#for(i in 1:length(group_high_level2)){
+for (i in 1: length(group_high_level2)){
   a <- levels(as.factor(dataset2$group_high_level[paste(dataset2$PMID, dataset2$region,
                                                         dataset2$stain_marker, dataset2$cell_type, 
                                                         dataset2$quantification_method, dataset2$dta) %in%
@@ -153,8 +171,7 @@ for (i in 1:length(group_high_level2)){
                                                           dataset2$region[i], dataset2$stain_marker[i],
                                                           dataset2$cell_type[i], dataset2$quantification_method[i],
                                                           dataset2$dta[i])]))
-  print(a)
-  group_high_level2[i] <- ifelse(length(a)==1, a, ifelse(length(a)==2,a[!grepl("Control", a)], ifelse(dataset2$group_high_level[i] != "Control", dataset2$group_high_level[i], NA )))
+  group_high_level2[i] <- ifelse(length(a)==1 & a!="Control", a, ifelse(length(a)==2,a[!grepl("Control", a)], ifelse(dataset2$group_high_level[i] != "Control", dataset2$group_high_level[i], NA )))
   
 }
 
@@ -165,8 +182,9 @@ ref_dataset2 <- dataset2    # reference dataset for the lines index
 for (i in 1:length(lines)){
   line<- ref_dataset2[lines[i],]
   rowid <- which(dataset2$PMID == line$PMID & dataset2$group == line$group & 
-                   dataset2$region == line$region & dataset2$cell_type == line$cell_type &
-                   dataset2$quantification_method == line$quantification_method & is.na(dataset2$group_high_level2))
+                   dataset2$region == line$region & dataset2$sub.region == line$sub.region &
+                   dataset2$cell_type == line$cell_type & dataset2$quantification_method == line$quantification_method &
+                   is.na(dataset2$group_high_level2))
   dataset2 <- add_row(dataset2,dataset2[rowid,], .before = rowid)
   factor_level <- levels(as.factor(dataset2$group_high_level[paste(dataset2$PMID, dataset2$region,
                                                                    dataset2$stain_marker, dataset2$cell_type, 
@@ -190,7 +208,8 @@ for (i in 1:length(lines)){
 }
 
 
-
+# pb with those 
+#dataset2[is.na(dataset2$group_high_level2),]
 
 ### FILTER DATASET 
 
@@ -198,7 +217,7 @@ for (i in 1:length(lines)){
 
 
 # Remove duplicated rows of region / stain marker / cell type and quantification method 
-synth_data <- dataset2[!duplicated(dataset2[,c("PMID","region","stain_marker","cell_type",
+synth_data <- dataset2[!duplicated(dataset2[,c("PMID","region","sub.region","stain_marker","cell_type",
                                                "quantification_method","dta","group_high_level","group_high_level2")]),] 
 
 
@@ -242,11 +261,11 @@ for (i in 1:dim(synth_data)[1]){
   
   # Get all the rows that have the same variables 
   crop_data <- dataset2[paste(dataset2$PMID, dataset2$group_high_level, dataset2$region,
-                              dataset2$stain_marker, dataset2$cell_type, 
+                              dataset2$sub.region, dataset2$stain_marker, dataset2$cell_type, 
                               dataset2$quantification_method, dataset2$dta,
                               dataset2$group_high_level2) %in%
-                          paste(synth_data$PMID[i],synth_data$group_high_level[i],
-                                synth_data$region[i], synth_data$stain_marker[i],
+                          paste(synth_data$PMID[i],synth_data$group_high_level[i], synth_data$region[i],
+                                synth_data$sub.region[i], synth_data$stain_marker[i], 
                                 synth_data$cell_type[i], synth_data$quantification_method[i],
                                 synth_data$dta[i], synth_data$group_high_level2[i]),]
   
@@ -265,19 +284,19 @@ synth_data <- cbind(synth_data, vect_mean, vect_sd)
 
 ## Calculate the ratio for PDs and Controls with same variables 
 
-ratio_data <- synth_data[!duplicated(synth_data[,c("PMID","region","stain_marker","cell_type",
+ratio_data <- synth_data[!duplicated(synth_data[,c("PMID","region","sub.region", "stain_marker","cell_type",
                                                    "quantification_method","dta","group_high_level2")]),]
 
 vect_ratio <- vector(length=dim(ratio_data)[1])
 vect_sd_ratio <- vector(length=dim(ratio_data)[1])
 
 for (i in 1:dim(ratio_data)[1]){
-  crop_data <-synth_data[paste(synth_data$PMID, synth_data$region,
+  crop_data <-synth_data[paste(synth_data$PMID, synth_data$region, synth_data$sub.region,
                                synth_data$stain_marker, synth_data$cell_type, 
                                synth_data$quantification_method, synth_data$dta,
                                synth_data$group_high_level2) %in%
-                           paste(ratio_data$PMID[i],
-                                 ratio_data$region[i], ratio_data$stain_marker[i],
+                           paste(ratio_data$PMID[i],ratio_data$region[i],
+                                 ratio_data$sub.region[i], ratio_data$stain_marker[i],
                                  ratio_data$cell_type[i], ratio_data$quantification_method[i],
                                  ratio_data$dta[i], ratio_data$group_high_level2[i]),]
   
@@ -316,12 +335,12 @@ ratio_data <- cbind(ratio_data, vect_ratio, vect_sd_ratio)
 # Regroup PMIDS with same variables but values initially in different units and
 # do the mean of the ratio and the sd 
 ratio_data0 <- ddply(ratio_data, 
-                     c("PMID","region","stain_marker","cell_type",
+                     c("PMID","region", "sub.region","stain_marker","cell_type",
                        "quantification_method","group_high_level2"), 
                      summarize, 
                      mean(vect_ratio),
                      mean(vect_sd_ratio))   
-ratio_data <- ratio_data[!duplicated(ratio_data[,c("PMID","region","stain_marker","cell_type",
+ratio_data <- ratio_data[!duplicated(ratio_data[,c("PMID","region", "sub.region", "stain_marker","cell_type",
                                                    "quantification_method","group_high_level2")]),]
 ratio_data[,c("vect_ratio","vect_sd_ratio")] <- ratio_data0[,c("mean(vect_ratio)",
                                                                "mean(vect_sd_ratio)")]
@@ -355,6 +374,8 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
                       placeholder = 'Select a group'),
         region = list( inputId = "region", 
                       placeholder = 'Select a region'),
+        sub.region = list( inputId = "sub.region", 
+                       placeholder = 'Select a sub region'),
         stain_marker = list( inputId = "stain_marker", 
                               placeholder = 'Select a stain marker'),
         cell_type = list( inputId = "cell_type", 
@@ -384,7 +405,7 @@ server <- function(input, output, session){
     module = selectizeGroupServer,
     id = "my_filters",
     data = final_data,
-    vars = c("year_published", "rob_score", "data_type", "group_high_level", "region",
+    vars = c("year_published", "rob_score", "data_type", "group_high_level", "region", "sub.region",
              "stain_marker", "cell_type", "quantification_method"),
     inline = FALSE
   )
