@@ -2,28 +2,27 @@
 library(shiny)
 library(shinyWidgets)
 library(DT)
-library(devtools)
-library(plyr)
-library(ggplot2)
-library(gtools)
-library(Hmisc)
-library(radiant.data)
-library(tibble)
+#library(devtools)
+#library(plyr)
+#library(ggplot2)
+#library(gtools)
+#library(Hmisc)
+#library(radiant.data)
+#library(tibble)
 
-# source updated functions of the shinyWidget package 
-source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-selectizeGroup.R")
-source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-utils.R")
-
-
-
-
-### ARRANGE DATASET
+# functions of the shinyWidget package 
+devtools::source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-selectizeGroup.R")
+devtools::source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-utils.R")
 
 
 
+#### ARRANGE DATASET ####
 
-# Import data
-rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/Data/derived/all_data_cleaned.csv?token=AVOQPRO6BWIGE62LMPQFNTTBSN3GA",
+
+
+
+##### Import data #####
+rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/www/derived/all_data_cleaned.csv?token=AVOQPROXCPJOOJM7LMR7OWDBS6C6O",
                     header = TRUE,sep = ",")
 
 # Import glossary
@@ -50,12 +49,12 @@ dataset <- subset(dataset, select = -c(sub.group)) ; colnames(dataset)
 dataset$group <- gsub("NA", "", dataset$group) ; head(dataset$group)
 #dataset$region <- gsub("NA", "", dataset$region) ; head(dataset$region)
 
-# Harmonizing terms 
-dataset$region <- mapvalues(dataset$region,
+##### Harmonizing terms #####
+dataset$region <- plyr::mapvalues(dataset$region,
                             c("caudate_nucleus", "Hypothal"),
                             c("caudate_Nucleus", "hypothal"))
 
-dataset$sub.region <- mapvalues(dataset$sub.region,
+dataset$sub.region <- plyr::mapvalues(dataset$sub.region,
                             c("Caudal", "Cli", "dorsolateral", "dorsomedial", "intermediate",
                               "lateral", "medial", "middle", "posterolateral", "Rli", "rostral",
                               "ventral", "ventrolateral", "ventromedial", "medial_2", "medial_3"),
@@ -64,26 +63,27 @@ dataset$sub.region <- mapvalues(dataset$sub.region,
                               "Ventral", "Ventrolateral", "Ventromedial", "Medial", "Medial"))
 
 
-dataset$group <- mapvalues(dataset$group, 
+dataset$group <- trimws(dataset$group)
+dataset$group <- plyr::mapvalues(dataset$group, 
                            c("Control young", "PD without_l-dopa_reponse"),
                            c("control young", "PD without_l-dopa_response"))
 
-dataset$stain_marker <- mapvalues(dataset$stain_marker, 
+dataset$stain_marker <- plyr::mapvalues(dataset$stain_marker, 
                                   c("ChAt", "ACh"),
                                   c("ChAT", "ACH"))
 
-dataset$cell_type <- mapvalues(dataset$cell_type, 
+dataset$cell_type <- plyr::mapvalues(dataset$cell_type, 
                                c("CaN-pos", "noradrenergic", "purkinje_cell", "NADPHD_pos"),
                                c("CaN_pos", "Noradrenergic", "Purkinje_Cell", "NADPH-d_pos"))
 dataset$cell_type[which(grepl("golgi_type",dataset$cell_type))] <- "golgi_type"
 
-dataset$quantification_method <- mapvalues(dataset$quantification_method,
+dataset$quantification_method <- plyr::mapvalues(dataset$quantification_method,
                                            c("manual", "stereology"),
                                            c("Manual", "Stereology"))
 
 # Duplicate a control
 rowid <- which(dataset$PMID == 17894336 & dataset$group == "Control " & dataset$cell_type == "CaN_pos")
-dataset <- add_row(dataset, dataset[rowid,], .before = rowid)
+dataset <- tibble::add_row(dataset, dataset[rowid,], .before = rowid)
 dataset$region[rowid] <- dataset$region[rowid+2]
 dataset$sub.region[rowid] <- dataset$sub.region[rowid+2]
 dataset$region[rowid+1] <- dataset$region[rowid+3]
@@ -91,15 +91,15 @@ dataset$sub.region[rowid+1] <- dataset$sub.region[rowid+3]
 
 rowid2 <- which(dataset$PMID == 9039456 & dataset$stain_marker == "HLA-DR" &
                  is.na(dataset$cell_type))
-dataset <- add_row(dataset, dataset[rowid2,], .before = rowid2)
-dataset$cell_type[rowid2] <- levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456])))][1]
-dataset$cell_type[rowid2+1] <- levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456])))][2]
+dataset <- tibble::add_row(dataset, dataset[rowid2,], .before = rowid2)
+dataset$cell_type[rowid2] <- levels(as.factor(dataset$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset$cell_type[dataset$PMID == 9039456])))][1]
+dataset$cell_type[rowid2+1] <- levels(as.factor(dataset$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset$cell_type[dataset$PMID == 9039456])))][2]
 
 rowid3 <- which(dataset$PMID == 9039456 & dataset$stain_marker == "Ki-M1P" &
                   is.na(dataset$cell_type))
-dataset <- add_row(dataset, dataset[rowid3,], .before = rowid3)
-dataset$cell_type[rowid3] <- levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456])))][1]
-dataset$cell_type[rowid3+1] <- levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset2$cell_type[dataset$PMID == 9039456])))][2]
+dataset <- tibble::add_row(dataset, dataset[rowid3,], .before = rowid3)
+dataset$cell_type[rowid3] <- levels(as.factor(dataset$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset$cell_type[dataset$PMID == 9039456])))][1]
+dataset$cell_type[rowid3+1] <- levels(as.factor(dataset$cell_type[dataset$PMID == 9039456]))[-grepl("NA",levels(as.factor(dataset$cell_type[dataset$PMID == 9039456])))][2]
 
 
 # Remove empty raws (percent of total == FALSE )
@@ -114,7 +114,7 @@ dataset <- dataset[-which(dataset$PMID == 10459912 & dataset$region == "central_
                             dataset$stain_marker == "ACH" & dataset$cell_type == "Dopaminergic_melanised"),]
 dataset <-dataset[-which(dataset$PMID == 2570794 & is.na(dataset$percentage_loss)),]
 
-# Get the columns containing the values
+###### Get the columns containing the values #####
 dta <- apply(dataset, 1, FUN = function(x)(which(!is.na(x[c("percent_of_control", "mean_number", "number",
                                                             "number_x10.3", "number_x10.6", "density",
                                                             "number_per_mm.2", "number_per_mm.3", 
@@ -147,11 +147,13 @@ dataset2 <- dataset2[-which(dataset2$PMID == "6089493" & dataset2$dta == "number
 
 # Transfrom NAs or " " in Region/stain marker / cell type / quantification method into factors 
 # Column region
-dataset2[,c("region", "sub.region","stain_marker","cell_type","quantification_method")] <- na.replace(dataset2[,c("region","stain_marker","cell_type","quantification_method")],"NA")
+dataset2[,c("region", "sub.region","stain_marker","cell_type","quantification_method")] <- gtools::na.replace(dataset2[,c("region", "sub.region","stain_marker","cell_type","quantification_method")],"NA")
 
 # Transform Nas of columns n (number of cases) by 1 for weighted meqn calculations
-dataset2$n <- na.replace(dataset2$n,1)
+dataset2$n <- gtools::na.replace(dataset2$n,1)
 
+
+##### New group level #####
 dataset2$group_high_level <- apply(dataset2,1,function(x)ifelse(grepl("ontrol", x["group"]) |
                                                                   grepl("NPD", x["group"]) | 
                                                                   grepl("NMD", x["group"]),
@@ -164,11 +166,11 @@ dataset2$group_high_level <- apply(dataset2,1,function(x)ifelse(grepl("ontrol", 
 group_high_level2 <- vector(length= dim(dataset2)[1])
 
 for (i in 1: length(group_high_level2)){
-  a <- levels(as.factor(dataset2$group_high_level[paste(dataset2$PMID, dataset2$region,
+  a <- levels(as.factor(dataset2$group_high_level[paste(dataset2$PMID, dataset2$region,dataset2$sub.region,
                                                         dataset2$stain_marker, dataset2$cell_type, 
                                                         dataset2$quantification_method, dataset2$dta) %in%
-                                                    paste(dataset2$PMID[i],
-                                                          dataset2$region[i], dataset2$stain_marker[i],
+                                                    paste(dataset2$PMID[i], dataset2$region[i],
+                                                          dataset2$sub.region[i], dataset2$stain_marker[i],
                                                           dataset2$cell_type[i], dataset2$quantification_method[i],
                                                           dataset2$dta[i])]))
   group_high_level2[i] <- ifelse(length(a)==1 & a!="Control", a, ifelse(length(a)==2,a[!grepl("Control", a)], ifelse(dataset2$group_high_level[i] != "Control", dataset2$group_high_level[i], NA )))
@@ -185,7 +187,7 @@ for (i in 1:length(lines)){
                    dataset2$region == line$region & dataset2$sub.region == line$sub.region &
                    dataset2$cell_type == line$cell_type & dataset2$quantification_method == line$quantification_method &
                    is.na(dataset2$group_high_level2))
-  dataset2 <- add_row(dataset2,dataset2[rowid,], .before = rowid)
+  dataset2 <- tibble::add_row(dataset2,dataset2[rowid,], .before = rowid)
   factor_level <- levels(as.factor(dataset2$group_high_level[paste(dataset2$PMID, dataset2$region,
                                                                    dataset2$stain_marker, dataset2$cell_type, 
                                                                    dataset2$quantification_method, dataset2$dta) %in%
@@ -208,7 +210,8 @@ for (i in 1:length(lines)){
 # pb with those 
 #dataset2[is.na(dataset2$group_high_level2),]
 
-### FILTER DATASET 
+
+#### FILTER DATASET ####
 
 
 
@@ -218,11 +221,11 @@ synth_data <- dataset2[!duplicated(dataset2[,c("PMID","region","sub.region","sta
                                                "quantification_method","dta","group_high_level","group_high_level2")]),] 
 
 
-# Function calculates mean and sd for a group 
+##### Function calculates mean and sd for a group #####
 mean_sd <- function(data, col){
   
   # Calculate weighted mean
-  means <- wtd.mean(data[,col], data[,"n"]/sum(data[,"n"]))
+  means <- Hmisc::wtd.mean(data[,col], data[,"n"]/sum(data[,"n"]))
   
   # Get the different values of dispersion available
   values_sd = data[,"SD"]
@@ -244,7 +247,7 @@ mean_sd <- function(data, col){
   } 
   # If there is no SD/SEM/CV values available
   else {
-    sd <- weighted.sd(data[,col], data[,"n"]/sum(data[,"n"]))
+    sd <- radiant.data::weighted.sd(data[,col], data[,"n"]/sum(data[,"n"]))
   }
   return (c(means, sd))
 }
@@ -279,7 +282,7 @@ synth_data <- cbind(synth_data, vect_mean, vect_sd)
 
 
 
-## Calculate the ratio for PDs and Controls with same variables 
+##### Calculate the ratio for PDs and Controls with same variables #####
 
 ratio_data <- synth_data[!duplicated(synth_data[,c("PMID","region","sub.region", "stain_marker","cell_type",
                                                    "quantification_method","dta","group_high_level2")]),]
@@ -302,10 +305,10 @@ for (i in 1:dim(ratio_data)[1]){
   
   # For rows where values are a percentage 
   if (col %in% c("percent_of_control","percentage_loss")){
-    ratio <- wtd.mean(crop_data[,"vect_mean"], 
+    ratio <- Hmisc::wtd.mean(crop_data[,"vect_mean"], 
                       crop_data[,"n"]/sum(crop_data[,"n"]))/100  
     
-    sd_ratio <- weighted.sd(crop_data[,"vect_sd"], 
+    sd_ratio <- radiant.data::weighted.sd(crop_data[,"vect_sd"], 
                             crop_data[,"n"]/sum(crop_data[,"n"]))/100 ### right ??
   }
   # For rows where values are not a percentage 
@@ -331,29 +334,67 @@ ratio_data <- cbind(ratio_data, vect_ratio, vect_sd_ratio)
 
 # Regroup PMIDS with same variables but values initially in different units and
 # do the mean of the ratio and the sd 
-ratio_data0 <- ddply(ratio_data, 
-                     c("PMID","region", "sub.region","stain_marker","cell_type",
-                       "quantification_method","group_high_level2"), 
-                     summarize, 
-                     mean(vect_ratio),
-                     mean(vect_sd_ratio))
-ratio_data <- ratio_data[!duplicated(ratio_data[,c("PMID","region", "sub.region", "stain_marker","cell_type",
-                                                   "quantification_method","group_high_level2")]),]
-ratio_data[,c("vect_ratio","vect_sd_ratio")] <- ratio_data0[,c("mean(vect_ratio)",
-                                                               "mean(vect_sd_ratio)")]
-
+# ratio_data0 <- plyr::ddply(ratio_data, 
+#                      c("PMID","region", "sub.region","stain_marker","cell_type",
+#                        "quantification_method","group_high_level2"), 
+#                      summarise, 
+#                      mean(vect_ratio),
+#                      mean(vect_sd_ratio))
+# ratio_data <- ratio_data[!duplicated(ratio_data[,c("PMID","region", "sub.region", "stain_marker","cell_type",
+#                                                    "quantification_method","group_high_level2")]),]
+# ratio_data[,c("vect_ratio","vect_sd_ratio")] <- ratio_data0[,c("mean(vect_ratio)",
+#                                                                "mean(vect_sd_ratio)")]
+# 
 final_data <- ratio_data
 
 
+#### General graphs ####
+
+# Publications by region
+nb_by_region <- plyr::ddply(dataset2, c("region","quantification_method"),"nrow")
+nb_by_region$indiv_pd <- apply(nb_by_region, 1, function(x,dataset2) 
+                          sum(dataset2[(paste(dataset2$region, dataset2$quantification_method) 
+                                                   %in% paste(x["region"], x["quantification_method"])) 
+                                              & dataset2$group_high_level!="Control",
+                                       "n"]), dataset2)
+nb_by_region$indiv_cont <- apply(nb_by_region, 1, function(x,dataset2) 
+  sum(dataset2[(paste(dataset2$region, dataset2$quantification_method) 
+                %in% paste(x["region"], x["quantification_method"])) 
+               & dataset2$group_high_level=="Control",
+               "n"]), dataset2)
 
 
-### APP 
+# Publications by cell_type
+nb_by_cell <- plyr::ddply(dataset2, c("cell_type","quantification_method"),"nrow")
+
+nb_by_cell$indiv_pd <- apply(nb_by_cell, 1, function(x,dataset2) 
+  sum(dataset2[(paste(dataset2$cell_type, dataset2$quantification_method) 
+                %in% paste(x["cell_type"], x["quantification_method"])) 
+               & dataset2$group_high_level!="Control",
+               "n"]), dataset2)
+nb_by_cell$indiv_cont <- apply(nb_by_cell, 1, function(x,dataset2) 
+  sum(dataset2[(paste(dataset2$cell_type, dataset2$quantification_method) 
+                %in% paste(x["cell_type"], x["quantification_method"])) 
+               & dataset2$group_high_level=="Control",
+               "n"]), dataset2)
+
+#### APP ####
 
 
 
-## Define UI
+##### Define UI #####
   
 ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
+                 tabPanel("General data", 
+                          mainPanel(plotOutput("plot_region", click = "plot_region_click"),
+                                    verbatimTextOutput("info_region"),
+                                    plotOutput("plot_cell", click = "plot_cell_click"),
+                                    verbatimTextOutput("info_cell"),
+                                    plotOutput("plot_region-cell", click = "plot_region-cell_click"),
+                                    verbatimTextOutput("info_region-cell")        
+                            )
+                 ),
+                 
                  tabPanel("Plot",
   sidebarPanel(h3("Select filters :", style ="color: steelblue"),
                hr(),
@@ -388,6 +429,7 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
      fluidRow(plotOutput("plot1", click = "plot_click"),
              verbatimTextOutput("info")
 ))),
+
       tabPanel("Glossary",
                mainPanel(DTOutput("glossary")
                )
@@ -395,7 +437,7 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
 )
 
 
-## Define server
+##### Define server #####
 
 server <- function(input, output, session){
   res_mod <- callModule(
@@ -410,7 +452,7 @@ server <- function(input, output, session){
   
   # Create a boxplot
   output$plot1 <- renderPlot({
-    ggplot(res_mod(), aes(x = PMID, y = vect_ratio, color = group_high_level2)) + geom_point(size = 1) +
+    ggplot2::ggplot(res_mod(), aes(x = PMID, y = vect_ratio, color = group_high_level2)) + geom_point(size = 1) +
       geom_errorbar(aes(ymin=res_mod()$vect_ratio-res_mod()$vect_sd_ratio,
                         ymax=res_mod()$vect_ratio+res_mod()$vect_sd_ratio), width = .2) + 
       theme(panel.background = element_rect(fill = "white"),
@@ -420,11 +462,42 @@ server <- function(input, output, session){
   })
   
   # Coordinates of selected points 
-  output$info <- renderPrint({
-    req(input$plot_click)
-    xvalue <- round(input$plot_click$x, 2)
-    yvalue <- round(input$plot_click$y, 2)
-    cat("PMID :", xvalue, "\t", "Ratio : ",yvalue)
+  # output$info <- renderPrint({
+  #   req(input$plot_click)
+  #   xvalue <- round(input$plot_click$x, 2)
+  #   yvalue <- round(input$plot_click$y, 2)
+  #   cat("PMID :", xvalue, "\t", "Ratio : ",yvalue)
+  # })
+
+  # Plot Number of publication by region 
+  output$plot_region <- renderPlot({
+  ggplot2::ggplot(nb_by_region, mapping=aes(x=region, y=nrow, fill= quantification_method))+
+    geom_bar(stat = "identity") +
+    theme(panel.background = element_rect(fill = "white"),
+          panel.grid = element_blank(),
+          axis.text.x = element_text(size = 7, angle = 90, hjust = 1))
+  })
+  output$info_region <- renderPrint({
+    req(input$plot_region_click)
+    xvalue <- levels(as.factor(nb_by_region$region))[round(input$plot_region_click$x,0)]
+    return(nb_by_region[which(nb_by_region$region == as.factor(xvalue)),])
+    
+  })
+  
+  
+  # Plot Number of publication by cell type 
+  output$plot_cell <- renderPlot({
+    ggplot2::ggplot(nb_by_cell, mapping=aes(x=cell_type, y=nrow, fill= quantification_method))+
+      geom_bar(stat = "identity") +
+      theme(panel.background = element_rect(fill = "white"),
+            panel.grid = element_blank(),
+            axis.text.x = element_text(size = 7, angle = 90, hjust = 1))
+  })
+  output$info_cell <- renderPrint({
+    req(input$plot_cell_click)
+    xvalue <- levels(as.factor(nb_by_cell$cell_type))[round(input$plot_cell_click$x,0)]
+    return(nb_by_cell[which(nb_by_cell$cell_type == as.factor(xvalue)),])
+    
   })
   
   # Glossary
@@ -432,6 +505,6 @@ server <- function(input, output, session){
 }
 
 
-## Run the app
+##### Run the app #####
 shinyApp(ui,server)
 
