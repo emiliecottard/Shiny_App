@@ -9,11 +9,11 @@ library(DT)
 #library(Hmisc)
 #library(radiant.data)
 #library(tibble)
+library(here)
 
 # functions of the shinyWidget package 
 devtools::source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-selectizeGroup.R")
 devtools::source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-utils.R")
-
 
 
 #### ARRANGE DATASET ####
@@ -25,11 +25,11 @@ devtools::source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidge
 rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/www/derived/all_data_cleaned.csv?token=AVOQPROXCPJOOJM7LMR7OWDBS6C6O",
                     header = TRUE,sep = ",")
 
-# Import glossary
+##### Import glossary #####
 glossary <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/glossary.md?token=AVOQPRPSVP2NCKR5LG3MKCTBSUEN6",
                       header = TRUE,sep = "|")
 
-# Re-arrange glossary
+##### Re-arrange glossary ##### 
 glossary <- glossary[-1,-c(1,5)]
 glossary$Term <- gsub("`", "", glossary$Term)
 
@@ -38,6 +38,14 @@ glossary$Term <- gsub("`", "", glossary$Term)
 dataset <- Filter(function(x)!all(is.na(x) | x == ""), rawdata)
 dataset <- subset(dataset, select = -X1)
 
+
+##### Remove whitespace from data #####
+for (x in c("region","sub.region",
+            "group","stain_marker",
+            "cell_type","quantification_method")){ 
+  dataset[[x]] <- trimws(dataset[[x]])
+}
+remove(x)
 
 # Merging groups and sub groups 
 #dataset$region <- c(paste(dataset$region, dataset$sub.region, sep = " "))  ; head(dataset)
@@ -63,7 +71,6 @@ dataset$sub.region <- plyr::mapvalues(dataset$sub.region,
                               "Ventral", "Ventrolateral", "Ventromedial", "Medial", "Medial"))
 
 
-dataset$group <- trimws(dataset$group)
 dataset$group <- plyr::mapvalues(dataset$group, 
                            c("Control young", "PD without_l-dopa_reponse"),
                            c("control young", "PD without_l-dopa_response"))
@@ -422,8 +429,30 @@ ui <- navbarPage("Selective Vulnerability Meta Analysis", id = "main_navbar",
                            placeholder = 'Select a quantification method')
       )
     ),
-    sliderInput("ratio","Ratio", min = 0, max = 150, value = c(0,100)),
-    sliderInput("sd_ratio","SD of the ratio", min = 0, max = 150, value = c(0,100))
+    fluidRow(
+      h5("Ratio", style ="color: steelblue"),
+      column(6,
+             numericInput("min_ratio",h5("Min"), 
+                          value = 0, 
+                          min = 0, 
+                          max = round(max(final_data$vect_ratio), digits = 0))),
+      column(6,
+             numericInput("max_ratio",h5("Max"), 
+                          value = round(max(final_data$vect_ratio), digits = 0), 
+                          min = 0, 
+                          max = round(max(final_data$vect_ratio)+5, digits = 0)))),
+    fluidRow(
+      h5("Standard deviation of the ratio", style ="color: steelblue"),
+      column(6,
+             numericInput("min_sd_ratio",h5("Min"), 
+                          value = 0, 
+                          min = 0, 
+                          max = round(max(final_data$vect_sd_ratio), digits = 0))),
+      column(6,
+             numericInput("max_sd_ratio",h5("Max"), 
+                          value = round(max(final_data$vect_sd_ratio), digits = 0), 
+                          min = 0, 
+                          max = round(max(final_data$vect_sd_ratio)+5, digits = 0))))
   ),
   mainPanel(
      fluidRow(plotOutput("plot1", click = "plot_click"),
@@ -448,26 +477,32 @@ server <- function(input, output, session){
              "stain_marker", "cell_type", "quantification_method"),
     inline = FALSE
   )
-
   
+  res_mod2 <- reactive({
+    res_mod2 <- res_mod()[res_mod()$vect_ratio >= input$min_ratio &
+                            res_mod()$vect_ratio <= input$max_ratio &
+                            res_mod()$vect_sd_ratio >= input$min_sd_ratio &
+                            res_mod()$vect_sd_ratio <= input$max_sd_ratio,]
+    
+  })
   # Create a boxplot
   output$plot1 <- renderPlot({
-    ggplot2::ggplot(res_mod(), aes(x = PMID, y = vect_ratio, color = group_high_level2)) + geom_point(size = 1) +
-      geom_errorbar(aes(ymin=res_mod()$vect_ratio-res_mod()$vect_sd_ratio,
-                        ymax=res_mod()$vect_ratio+res_mod()$vect_sd_ratio), width = .2) + 
+    ggplot2::ggplot(res_mod2(), aes(x = PMID, y = vect_ratio, color = group_high_level2)) + geom_point(size = 1) +
+      geom_errorbar(aes(ymin=res_mod2()$vect_ratio-res_mod2()$vect_sd_ratio,
+                        ymax=res_mod2()$vect_ratio+res_mod2()$vect_sd_ratio), width = .2) + 
       theme(panel.background = element_rect(fill = "white"),
             panel.grid = element_blank(),
             axis.line = element_line(size = 0.5, colour = "darkgrey"),
             axis.text.x = element_text(size = 7, angle = 90, hjust = 1))
   })
   
-  # Coordinates of selected points 
-  # output$info <- renderPrint({
-  #   req(input$plot_click)
-  #   xvalue <- round(input$plot_click$x, 2)
-  #   yvalue <- round(input$plot_click$y, 2)
-  #   cat("PMID :", xvalue, "\t", "Ratio : ",yvalue)
-  # })
+  # Coordinates of selected points
+  output$info <- renderPrint({
+    req(input$plot_click)
+    xvalue <- round(input$plot_click$x, 2)
+    yvalue <- round(input$plot_click$y, 2)
+    cat("PMID :", xvalue, "\t", "Ratio : ",yvalue)
+  })
 
   # Plot Number of publication by region 
   output$plot_region <- renderPlot({
