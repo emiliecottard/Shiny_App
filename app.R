@@ -2,16 +2,9 @@
 library(shiny)
 library(shinyWidgets)
 library(DT)
-#library(devtools)
-#library(plyr)
-#library(ggplot2)
-#library(gtools)
-#library(Hmisc)
-#library(radiant.data)
-#library(tibble)
-library(here)
 
-# functions of the shinyWidget package 
+  
+#functions of the shinyWidget package 
 devtools::source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-selectizeGroup.R")
 devtools::source_url("https://raw.githubusercontent.com/ismirsehregal/shinyWidgets/master/R/module-utils.R")
 
@@ -26,7 +19,7 @@ rawdata <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVu
                     header = TRUE,sep = ",")
 
 ##### Import glossary #####
-glossary <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/glossary.md?token=AVOQPRPSVP2NCKR5LG3MKCTBSUEN6",
+glossary <- read.csv("https://raw.githubusercontent.com/neurogenomics/SelectiveVulnerabilityMetaAnalysis/main/www/glossary.md?token=AVOQPRKWHTDY6HGKVEWETYTBT5U34",
                       header = TRUE,sep = "|")
 
 ##### Re-arrange glossary ##### 
@@ -48,14 +41,13 @@ for (x in c("region","sub.region",
 remove(x)
 
 # Merging groups and sub groups 
-#dataset$region <- c(paste(dataset$region, dataset$sub.region, sep = " "))  ; head(dataset)
 dataset$group <- c(paste(dataset$group, dataset$sub.group, sep = " ")) ; head(dataset)
 dataset <- subset(dataset, select = -c(sub.group)) ; colnames(dataset)
 
 
 # Removing unnecessary NAs in  merged columns
 dataset$group <- gsub("NA", "", dataset$group) ; head(dataset$group)
-#dataset$region <- gsub("NA", "", dataset$region) ; head(dataset$region)
+
 
 ##### Harmonizing terms #####
 dataset$region <- plyr::mapvalues(dataset$region,
@@ -214,7 +206,8 @@ for (i in 1:length(lines)){
 }
 
 
-# pb with those 
+# pb with those
+# after runnig this part, there are still lines with NA in group_high_level2
 #dataset2[is.na(dataset2$group_high_level2),]
 
 
@@ -321,9 +314,9 @@ for (i in 1:dim(ratio_data)[1]){
   # For rows where values are not a percentage 
   else {
     mean_control <- crop_data[grepl("Control", crop_data$group_high_level), "vect_mean"]
-    mean_pd <- crop_data[-grepl("Control", crop_data$group_high_level), "vect_mean"]
+    mean_pd <- crop_data[!grepl("Control", crop_data$group_high_level), "vect_mean"]
     sd_control <- crop_data[grepl("Control", crop_data$group_high_level), "vect_sd"]
-    sd_pd <- crop_data[-grepl("Control", crop_data$group_high_level), "vect_sd"]
+    sd_pd <- crop_data[!grepl("Control", crop_data$group_high_level), "vect_sd"]
     
     # Ratio 
     ratio <- mean_pd / mean_control
@@ -341,17 +334,17 @@ ratio_data <- cbind(ratio_data, vect_ratio, vect_sd_ratio)
 
 # Regroup PMIDS with same variables but values initially in different units and
 # do the mean of the ratio and the sd 
-# ratio_data0 <- plyr::ddply(ratio_data, 
-#                      c("PMID","region", "sub.region","stain_marker","cell_type",
-#                        "quantification_method","group_high_level2"), 
-#                      summarise, 
-#                      mean(vect_ratio),
-#                      mean(vect_sd_ratio))
-# ratio_data <- ratio_data[!duplicated(ratio_data[,c("PMID","region", "sub.region", "stain_marker","cell_type",
-#                                                    "quantification_method","group_high_level2")]),]
-# ratio_data[,c("vect_ratio","vect_sd_ratio")] <- ratio_data0[,c("mean(vect_ratio)",
-#                                                                "mean(vect_sd_ratio)")]
-# 
+ratio_data0 <- plyr::ddply(ratio_data, 
+                    c("PMID","region", "sub.region","stain_marker","cell_type",
+                      "quantification_method","group_high_level2"), 
+                    summarise, 
+                    "global_mean" = mean(vect_ratio),
+                    "global_sd" =mean(vect_sd_ratio))
+ratio_data <- ratio_data[!duplicated(ratio_data[,c("PMID","region", "sub.region", "stain_marker","cell_type",
+                                                    "quantification_method","group_high_level2")]),]
+ratio_data[,c("vect_ratio","vect_sd_ratio")] <- ratio_data0[,c("global_mean",
+                                                                "global_sd")]
+
 final_data <- ratio_data
 
 
