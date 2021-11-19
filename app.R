@@ -80,13 +80,25 @@ dataset$quantification_method <- plyr::mapvalues(dataset$quantification_method,
                                            c("manual", "stereology"),
                                            c("Manual", "Stereology"))
 
-# Duplicate a control
-rowid <- which(dataset$PMID == 17894336 & dataset$group == "Control " & dataset$cell_type == "CaN_pos")
+#### Duplicate controls for specific publications ####
+# For some publications some factors between controls and cases do
+# not match correctly so have to remake them 
+# Identify the row to duplicate
+rowid <- which(dataset$PMID == 17894336 &
+                 dataset$group == "Control " &
+                 dataset$cell_type == "CaN_pos")
+# Duplicate the row
 dataset <- tibble::add_row(dataset, dataset[rowid,], .before = rowid)
-dataset$region[rowid] <- dataset$region[rowid+2]
-dataset$sub.region[rowid] <- dataset$sub.region[rowid+2]
-dataset$region[rowid+1] <- dataset$region[rowid+3]
-dataset$sub.region[rowid+1] <- dataset$sub.region[rowid+3]
+# Original row gets the first sub.region factors
+dataset$subregion[rowid] <- levels(as.factor(
+  dataset$sub.region[dataset$PMID == 17894336 &
+                       dataset$cell_type == "CaN_pos" &
+                       dataset$group!="Control "]))[1]
+# Duplicated row gets the second sub.region factors
+dataset$region[rowid+1] <- levels(as.factor(
+  dataset$sub.region[dataset$PMID == 17894336 &
+                       dataset$cell_type == "CaN_pos" &
+                       dataset$group!="Control "]))[2]
 
 rowid2 <- which(dataset$PMID == 9039456 & dataset$stain_marker == "HLA-DR" &
                  is.na(dataset$cell_type))
@@ -113,6 +125,7 @@ dataset <- dataset[-which(dataset$PMID == 10459912 & dataset$region == "central_
                             dataset$stain_marker == "ACH" & dataset$cell_type == "Dopaminergic_melanised"),]
 dataset <-dataset[-which(dataset$PMID == 2570794 & is.na(dataset$percentage_loss)),]
 dataset <- dataset[-which(dataset$PMID == 2575832 & dataset$group == "Control "),]
+dataset <- dataset[-which(dataset$PMID == 6089493 & dataset$dta == "number"),]
 
 ###### Get the columns containing the values #####
 dta <- apply(dataset, 1, FUN = function(x)(which(!is.na(x[c("percent_of_control", "mean_number", "number",
@@ -142,7 +155,6 @@ dta <- lapply(dta,function(x)(colnames(dataset[,c("percent_of_control", "mean_nu
 dataset2 <- dataset
 dta <- unlist(dta)
 dataset2$dta <- dta
-dataset2 <- dataset2[-which(dataset2$PMID == "6089493" & dataset2$dta == "number"),]  # remove an anormal line  
 
 
 # Transfrom NAs or " " in Region/stain marker / cell type / quantification method into factors 
@@ -163,64 +175,33 @@ dataset2$group_high_level <- apply(dataset2,1,function(x)ifelse(grepl("ontrol", 
                                                                        ifelse(grepl("AD", x["group"]),
                                                                               "AD",
                                                                               x["group"]))))
-group_high_level2 <- vector(length= dim(dataset2)[1])
 
-for (i in 1: length(group_high_level2)){
-  a <- levels(as.factor(dataset2$group_high_level[paste(dataset2$PMID, dataset2$region,dataset2$sub.region,
-                                                        dataset2$stain_marker, dataset2$cell_type, 
-                                                        dataset2$quantification_method, dataset2$dta) %in%
-                                                    paste(dataset2$PMID[i], dataset2$region[i],
-                                                          dataset2$sub.region[i], dataset2$stain_marker[i],
-                                                          dataset2$cell_type[i], dataset2$quantification_method[i],
-                                                          dataset2$dta[i])]))
-   group_high_level2[i] <- ifelse(length(a)==1 && a!="Control", a,
-               ifelse(length(a)==2 && "Control" %in% a, a[!grepl("Control", a)],
-               ifelse(length(a)==2 && !("Control" %in% a), dataset2$group_high_level[i], NA)))
-}
-
-dataset2 <- cbind(dataset2, group_high_level2)
-lines <- which(dataset2$group_high_level == "Control" & is.na(dataset2$group_high_level2))   # Lines to duplicate
-ref_dataset2 <- dataset2    # reference dataset for the lines index
-
-i <- 1
-while (i <=length(lines)){
-  line<- ref_dataset2[lines[i],]
-  rowid <- which(dataset2$PMID == line$PMID & dataset2$group == line$group & 
-                   dataset2$region == line$region & dataset2$sub.region == line$sub.region &
-                   dataset2$stain_marker ==line$stain_marker & dataset2$cell_type == line$cell_type &
-                   dataset2$quantification_method == line$quantification_method &
-                   is.na(dataset2$group_high_level2))
-  
-  # Duplicate controls to have controls for each diseases studied 
-  dataset2 <- tibble::add_row(dataset2,dataset2[rowid,], .before = rowid[1])
-  factor_level <- levels(as.factor(dataset2$group_high_level[paste(dataset2$PMID, dataset2$region,
-                                                                   dataset2$stain_marker, dataset2$cell_type, 
-                                                                   dataset2$quantification_method, dataset2$dta) %in%
-                                                               paste(dataset2$PMID[rowid],
-                                                                     dataset2$region[rowid], dataset2$stain_marker[rowid],
-                                                                     dataset2$cell_type[rowid], dataset2$quantification_method[rowid],
-                                                                     dataset2$dta[rowid])]))
-  factor_level <- factor_level[!grepl("Control", factor_level)]
-  if(length(rowid)==1){
-    dataset2$group_high_level2[rowid] <- factor_level[1]
-    dataset2$group_high_level2[rowid+1] <- factor_level[2]
-    i <- i +1
-  } else {
-    dataset2$group_high_level2[rowid[1]:(rowid[1]-1 +length(rowid))] <- factor_level[1]
-    dataset2$group_high_level2[(rowid[1]+length(rowid)):(rowid[1]-1+2*length(rowid))] <- factor_level[2]
-    i <- i+length(rowid)
-  }
-  
-  # Now modify group-high_level2 for the cases linked to the modified Contrls 
-  cases_rows <-which(dataset2$PMID == dataset2$PMID[rowid[1]] & 
-                       dataset2$group_high_level!="Control")
-  dataset2$group_high_level2[cases_rows] <- apply(dataset2[cases_rows,],1, function(x) x["group_high_level2"]<- x["group_high_level"])
-}
+#first let's identify all PMID's with a control
+pmids <- unique(dataset2[dataset2$group_high_level=="Control",]$PMID)
+#now get disease names for these cases
+diseases <- 
+  dataset2[dataset2$PMID %in% pmids & dataset2$group_high_level!="Control",]
+#only keep PMID and group_high_level columns
+diseases <- diseases[,c("PMID","group_high_level")]
+#These are the number of rows we need to create multiple control entries
+#set group_high_level to group_high_level2
+names(diseases)[names(diseases) == "group_high_level"] <- "group_high_level2"
+#join on the same control data for each (left join), note only for PMIDs w/ controls
+diseases <-
+  merge(x = diseases, y = dataset2[dataset2$PMID %in% pmids & 
+                                     dataset2$group_high_level=="Control",], 
+        by = "PMID", all.x = TRUE)
+#now just create the dataset without the multi disease cases' controls and add
+#the new column
+dataset2 <- 
+  dataset2[!(dataset2$PMID %in% pmids & 
+               dataset2$group_high_level=="Control"),]
+#add new column, set name to group_high_level value
+dataset2$group_high_level2 <- dataset2$group_high_level
+#reorder columns to match other df and union
+dataset2 <- rbind(dataset2,diseases[,names(dataset2)])
 
 
-# pb with those
-# after runnig this part, there are still lines with NA in group_high_level2
-dataset2[is.na(dataset2$group_high_level2),]
 
 
 #### FILTER DATASET ####
